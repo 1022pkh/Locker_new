@@ -21,6 +21,7 @@ import com.baoyz.swipemenulistview.SwipeMenuListView;
 import com.capstone.locker.R;
 import com.capstone.locker.application.ApplicationController;
 import com.capstone.locker.database.DbOpenHelper;
+import com.capstone.locker.detail.DetailActivity;
 import com.capstone.locker.main.model.ListViewItem;
 import com.capstone.locker.main.presenter.CustomAdapter;
 import com.capstone.locker.register.RegisterActivity;
@@ -150,7 +151,12 @@ public class MainActivity extends AppCompatActivity implements MainView{
             public boolean onMenuItemClick(final int position, SwipeMenu menu, int index) {
                 switch (index) {
                     case 0:
-                        Toast.makeText(getApplicationContext(), "상세 보기",Toast.LENGTH_SHORT).show();
+                        //Toast.makeText(getApplicationContext(), "상세 보기",Toast.LENGTH_SHORT).show();
+
+                        Intent intent = new Intent(getApplicationContext(), DetailActivity.class);
+                        intent.putExtra("id",String.valueOf(itemDatas.get(position).id));
+                        startActivity(intent);
+
                         break;
                     case 1:
                         Toast.makeText(getApplicationContext(), "수정",Toast.LENGTH_SHORT).show();

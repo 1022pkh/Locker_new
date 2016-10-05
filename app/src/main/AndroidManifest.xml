@@ -29,7 +29,9 @@
         <activity
             android:name=".register.owner.OwnerActivity"
             android:theme="@style/AppTheme.NoActionBar" />
-        <activity android:name=".register.guest.GuestActivity"></activity>
+        <activity android:name=".register.guest.GuestActivity" />
+        <activity android:name=".detail.DetailActivity"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>
 
 </manifest>

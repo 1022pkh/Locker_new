@@ -99,9 +99,7 @@ public class DbOpenHelper {
      * @param id
      */
     public void DbDelete(String id) {
-
         mDB.delete("moduleinfo", "_id=?", new String[]{id});
-
     }
 
 
@@ -144,6 +142,45 @@ public class DbOpenHelper {
 
 
         return itemDatas;
+    }
+
+
+    public ItemData DbDetail(String id){
+        SQLiteDatabase getDb;
+        getDb = mDBHelper.getReadableDatabase();
+        Cursor c = getDb.rawQuery( "select * from moduleinfo where _id = "+id , null);
+
+        ItemData item = new ItemData();
+//
+//        Log.i("myTag" , "갯수 : " + String.valueOf(c.getCount()));
+
+        while(c.moveToNext()){
+            int _id = c.getInt(c.getColumnIndex("_id"));
+            String identName = c.getString(c.getColumnIndex("ident_name"));
+            String identNum = c.getString(c.getColumnIndex("ident_num"));
+            String nickName = c.getString(c.getColumnIndex("nickname"));
+            String qualificaion = c.getString(c.getColumnIndex("qualificaion"));
+            String ownerPwd = c.getString(c.getColumnIndex("owner_pwd"));
+            String guestPwd = c.getString(c.getColumnIndex("quest_pwd"));
+            int icon = c.getInt(c.getColumnIndex("icon"));
+            String created = c.getString(c.getColumnIndex("created"));
+            int pushcheck = c.getInt(c.getColumnIndex("pushcheck"));
+
+
+            item.identName = identName;
+            item.identNum = identNum;
+            item.nickName = nickName;
+            item.qualificaion = qualificaion;
+            item.ownerPwd = ownerPwd;
+            item.questPwd = guestPwd;
+            item.icon = icon;
+            item.created = created;
+            item.pushcheck = pushcheck;
+
+        }
+
+
+        return item;
     }
 
     public void close(){
