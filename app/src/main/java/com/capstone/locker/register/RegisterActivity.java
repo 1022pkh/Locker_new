@@ -1,16 +1,21 @@
 package com.capstone.locker.register;
 
 import android.bluetooth.BluetoothAdapter;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.capstone.locker.Buletooth.view.DeviceSearchActivity;
 import com.capstone.locker.R;
+import com.capstone.locker.application.ApplicationController;
 import com.capstone.locker.register.guest.GuestActivity;
 import com.capstone.locker.register.owner.OwnerActivity;
+import com.tsengvn.typekit.TypekitContextWrapper;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -24,8 +29,11 @@ public class RegisterActivity extends AppCompatActivity {
     Button registerOwnerBtn;
     @BindView(R.id.registerGuest)
     Button registerGuestBtn;
+    @BindView(R.id.connectBLE)
+    TextView connectBLE;
 
     Boolean checkBluetooth = false;
+    Boolean checkConnectBLE = false;
 
     private BluetoothAdapter mBluetoothAdapter;
     private static final int REQUEST_CONNECT_DEVICE = 1;
@@ -39,19 +47,46 @@ public class RegisterActivity extends AppCompatActivity {
         ButterKnife.bind(this);
 
         checkBlueTooth();
+
+        if(ApplicationController.getInstance().mDeviceAddress == null)
+            ApplicationController.getInstance().mDeviceAddress = "";
+
+        if(ApplicationController.getInstance().mDeviceAddress.equals("")){
+
+        }
+        else{
+            checkConnectBLE = true;
+            connectBLE.setText(ApplicationController.getInstance().mDeviceAddress);
+        }
+
+    }
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(TypekitContextWrapper.wrap(newBase));
     }
 
     @OnClick(R.id.findModule)
     public void connectModule(){
         // TODO: 2016. 10. 5. 블루투스 목록 검색을 통해 등록되지않은 잠금장치 연결
+
+        Intent intent = new Intent(getApplicationContext(), DeviceSearchActivity.class);
+//            startActivity(intent);
+        startActivityForResult(intent, 1); // requestCode
+
     }
 
     @OnClick(R.id.registerOwner)
     public void moveOwnerPage(){
         if(checkBluetooth == true){
-            Intent intent = new Intent(getApplicationContext(), OwnerActivity.class);
-            startActivity(intent);
-            finish();
+            if(checkConnectBLE == true){
+                Intent intent = new Intent(getApplicationContext(), OwnerActivity.class);
+                startActivity(intent);
+                finish();
+            }
+            else{
+                Toast.makeText(getApplicationContext(),"장치를 먼저 연결해주세요.",Toast.LENGTH_SHORT).show();
+            }
         }
         else{
             Toast.makeText(getApplicationContext(),"블루투스 설정 및 잠금장치 연결을 확인해주세요",Toast.LENGTH_SHORT).show();
@@ -60,10 +95,16 @@ public class RegisterActivity extends AppCompatActivity {
 
     @OnClick(R.id.registerGuest)
     public void moveGuestPage(){
+
         if(checkBluetooth == true){
-            Intent intent = new Intent(getApplicationContext(), GuestActivity.class);
-            startActivity(intent);
-            finish();
+            if(checkConnectBLE == true){
+                Intent intent = new Intent(getApplicationContext(), GuestActivity.class);
+                startActivity(intent);
+                finish();
+            }
+            else{
+                Toast.makeText(getApplicationContext(),"장치를 먼저 연결해주세요.",Toast.LENGTH_SHORT).show();
+            }
         }
         else{
             Toast.makeText(getApplicationContext(),"블루투스 설정 및 잠금장치 연결을 확인해주세요",Toast.LENGTH_SHORT).show();
@@ -113,6 +154,11 @@ public class RegisterActivity extends AppCompatActivity {
                     finish();  //  어플리케이션 종료
 
                 }
+                break;
+
+            case RESULT_OK:
+                Toast.makeText(getApplicationContext(), "ddd", Toast.LENGTH_SHORT).show();
+
                 break;
         }
         super.onActivityResult(requestCode, resultCode, data);

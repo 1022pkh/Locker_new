@@ -68,7 +68,7 @@ public class DbOpenHelper {
         values.put("nickname",itemData.nickName);
         values.put("qualificaion",itemData.qualificaion);
         values.put("owner_pwd", itemData.ownerPwd);
-        values.put("quest_pwd",itemData.questPwd);
+        values.put("quest_pwd",itemData.guestPwd);
         values.put("icon",itemData.icon);
         values.put("created",itemData.created);
         values.put("pushcheck",itemData.created);
@@ -80,15 +80,19 @@ public class DbOpenHelper {
     /**
      * DB항목 업그레이드 - 수정할 때 사용
      */
-    public void DbUpdate(String id,String roomId, String roomName, String image ,String content, String tag ){
+    public void DbUpdate(String id, ItemData itemData ){
 
         ContentValues values = new ContentValues();
-        values.put("userid",roomId);
-        values.put("roomid",roomId);
-        values.put("roomname",roomName);
-        values.put("content",content);
-        values.put("tag", tag);
-        values.put("image",image);
+        values.put("nickname",itemData.nickName);
+        values.put("icon",itemData.icon);
+        values.put("pushcheck",itemData.pushcheck);
+
+        if(itemData.ownerPwd != null && itemData.ownerPwd.length() !=0 ){
+            values.put("owner_pwd",itemData.ownerPwd);
+        }
+        if(itemData.guestPwd != null && itemData.guestPwd.length() !=0 ){
+            values.put("quest_pwd",itemData.guestPwd);
+        }
 
         mDB.update("moduleinfo", values, "_id=?", new String[]{id});
 
@@ -129,12 +133,12 @@ public class DbOpenHelper {
             int pushcheck = c.getInt(c.getColumnIndex("pushcheck"));
 
 
-            ListViewItem listViewItem = new ListViewItem();
+            ListViewItem listViewItem = new ListViewItem(_id,icon,qualificaion,nickName);
 
-            listViewItem.id = _id;
-            listViewItem.nickName = nickName;
-            listViewItem.qualification = qualificaion;
-            listViewItem.img = icon;
+//            listViewItem.id = _id;
+//            listViewItem.nickName = nickName;
+//            listViewItem.qualification = qualificaion;
+//            listViewItem.img = icon;
 
             itemDatas.add(listViewItem);
 
@@ -143,6 +147,44 @@ public class DbOpenHelper {
 
         return itemDatas;
     }
+
+//    public ArrayList<ListViewItem> DbMainExcept(){
+//        SQLiteDatabase getDb;
+//        getDb = mDBHelper.getReadableDatabase();
+//        Cursor c = getDb.rawQuery( "select * from moduleinfo where ident_num not in " + ApplicationController.getInstance().mDeviceAddress, null);
+//
+//        itemDatas = new ArrayList<ListViewItem>();
+////
+////        Log.i("myTag" , "갯수 : " + String.valueOf(c.getCount()));
+//
+//        while(c.moveToNext()){
+//            int _id = c.getInt(c.getColumnIndex("_id"));
+//            String identName = c.getString(c.getColumnIndex("ident_name"));
+//            String identNum = c.getString(c.getColumnIndex("ident_num"));
+//            String nickName = c.getString(c.getColumnIndex("nickname"));
+//            String qualificaion = c.getString(c.getColumnIndex("qualificaion"));
+//            String ownerPwd = c.getString(c.getColumnIndex("owner_pwd"));
+//            String questPwd = c.getString(c.getColumnIndex("quest_pwd"));
+//            int icon = c.getInt(c.getColumnIndex("icon"));
+//            String created = c.getString(c.getColumnIndex("created"));
+//            int pushcheck = c.getInt(c.getColumnIndex("pushcheck"));
+//
+//
+//            ListViewItem listViewItem = new ListViewItem();
+//
+//            listViewItem.id = _id;
+//            listViewItem.nickName = nickName;
+//            listViewItem.qualification = qualificaion;
+//            listViewItem.img = icon;
+//
+//            itemDatas.add(listViewItem);
+//
+//        }
+//
+//
+//        return itemDatas;
+//    }
+
 
 
     public ItemData DbDetail(String id){
@@ -172,7 +214,7 @@ public class DbOpenHelper {
             item.nickName = nickName;
             item.qualificaion = qualificaion;
             item.ownerPwd = ownerPwd;
-            item.questPwd = guestPwd;
+            item.guestPwd = guestPwd;
             item.icon = icon;
             item.created = created;
             item.pushcheck = pushcheck;
@@ -182,6 +224,47 @@ public class DbOpenHelper {
 
         return item;
     }
+
+
+    public ItemData DbFindMoudle(String num){
+        SQLiteDatabase getDb;
+        getDb = mDBHelper.getReadableDatabase();
+        Cursor c = getDb.rawQuery( "select * from moduleinfo where ident_num = '"+ num +"'" , null);
+
+        ItemData item = new ItemData();
+//
+//        Log.i("myTag" , "갯수 : " + String.valueOf(c.getCount()));
+
+        while(c.moveToNext()){
+            int _id = c.getInt(c.getColumnIndex("_id"));
+            String identName = c.getString(c.getColumnIndex("ident_name"));
+            String identNum = c.getString(c.getColumnIndex("ident_num"));
+            String nickName = c.getString(c.getColumnIndex("nickname"));
+            String qualificaion = c.getString(c.getColumnIndex("qualificaion"));
+            String ownerPwd = c.getString(c.getColumnIndex("owner_pwd"));
+            String guestPwd = c.getString(c.getColumnIndex("quest_pwd"));
+            int icon = c.getInt(c.getColumnIndex("icon"));
+            String created = c.getString(c.getColumnIndex("created"));
+            int pushcheck = c.getInt(c.getColumnIndex("pushcheck"));
+
+            item.Id = _id;
+            item.identName = identName;
+            item.identNum = identNum;
+            item.nickName = nickName;
+            item.qualificaion = qualificaion;
+            item.ownerPwd = ownerPwd;
+            item.guestPwd = guestPwd;
+            item.icon = icon;
+            item.created = created;
+            item.pushcheck = pushcheck;
+
+        }
+
+
+        return item;
+    }
+
+
 
     public void close(){
         mDB.close();

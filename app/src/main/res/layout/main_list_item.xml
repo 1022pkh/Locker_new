@@ -1,41 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#dddddd"
-    android:paddingTop="8dp"
-    android:paddingLeft="15dp"
-    android:paddingRight="15dp"
-    android:paddingBottom="8dp"
+    android:layout_height="72dp"
+    android:background="#ffffff"
     android:gravity="center_vertical">
 
-    <de.hdodenhof.circleimageview.CircleImageView
-        xmlns:app="http://schemas.android.com/apk/res-auto"
+    <ImageView
         android:id="@+id/profile_image"
-        android:layout_width="70dp"
-        android:layout_height="70dp"
-        android:src="@drawable/tempimg"
-        app:civ_border_width="2dp"
-        app:civ_border_color="#ffffff"/>
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="18dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:src="@drawable/ic_owner"/>
+
 
     <TextView
         android:id="@+id/modulequalification"
-        android:layout_marginLeft="15dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="20sp"
+        android:layout_marginLeft="14dp"
+        android:textSize="14sp"
         android:textColor="#000000"
-        android:text="Guest"
-        />
+        android:text="Owner"/>
+
+    <View
+        android:layout_width="2dp"
+        android:layout_height="14dp"
+        android:layout_marginLeft="14dp"
+        android:background="#B5B5B5"/>
 
     <TextView
         android:id="@+id/moduleName"
-        android:layout_marginLeft="25dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="20sp"
+        android:layout_marginLeft="14dp"
+        android:textSize="14sp"
         android:textColor="#000000"
-        android:text="모듈 이름"
-        />
+        android:text="123 사물함"/>
+
 
 </LinearLayout>

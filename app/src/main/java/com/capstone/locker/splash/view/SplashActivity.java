@@ -1,14 +1,24 @@
 package com.capstone.locker.splash.view;
 
 import android.bluetooth.BluetoothAdapter;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.widget.Toast;
 
+import com.capstone.locker.Buletooth.presenter.BluetoothLeService;
+import com.capstone.locker.application.ApplicationController;
 import com.capstone.locker.main.view.MainActivity;
 import com.capstone.locker.R;
+import com.tsengvn.typekit.TypekitContextWrapper;
 
 public class SplashActivity extends AppCompatActivity implements SplashView{
 
@@ -18,10 +28,39 @@ public class SplashActivity extends AppCompatActivity implements SplashView{
     private static final int REQUEST_CONNECT_DEVICE = 1;
     private static final int REQUEST_ENABLE_BT = 2;
 
+    public BluetoothLeService mBluetoothLeService;
+
+    String mDeviceAddress;
+    String mDeviceName;
+
+    public final ServiceConnection mServiceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder service) {
+            mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
+            if (!mBluetoothLeService.initialize()) {
+//                Log.e(TAG, "Unable to initialize Bluetooth");
+//                finish();
+            }
+            // Automatically connects to the device upon successful start-up initialization.
+            mBluetoothLeService.connect(mDeviceAddress);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            mBluetoothLeService = null;
+            Log.i("myTag","application onServiceDisconnected");
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
+
+        if (Build.VERSION.SDK_INT >= 21) {   //상태바 색
+            getWindow().setStatusBarColor(Color.parseColor("#3F51B5"));
+        }
 
         /**
          * Splash 에서 확인해야할 것
@@ -34,6 +73,43 @@ public class SplashActivity extends AppCompatActivity implements SplashView{
 
 
         // TODO: 2016. 10. 4. 2. 마지막으로 연결했던 모듈 확인 후 연결
+
+
+        mDeviceAddress = ApplicationController.getInstance().mDeviceAddress;
+        mDeviceName = ApplicationController.getInstance().mDeviceName;
+
+        if(mDeviceAddress != null && mDeviceAddress.length() > 0){
+            Log.i("myTag","init connected");
+
+            Intent gattServiceIntent = new Intent(getApplicationContext(), BluetoothLeService.class);
+            bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+
+
+            if (ApplicationController.getInstance().mBluetoothLeService != null) {
+                final boolean result = ApplicationController.getInstance().mBluetoothLeService.connect(mDeviceAddress);
+                Log.i("myTag", "Connect request result=" + result);
+
+                if(result){
+                    ApplicationController.getInstance().editor.putBoolean("Connect_check", true);
+                    ApplicationController.getInstance().editor.commit();
+                }
+                else{
+                    ApplicationController.getInstance().editor.putBoolean("Connect_check", false);
+                    ApplicationController.getInstance().editor.commit();
+                }
+            }
+            else{
+                ApplicationController.getInstance().editor.putBoolean("Connect_check", false);
+                ApplicationController.getInstance().editor.commit();
+            }
+
+        }
+        else{
+            ApplicationController.getInstance().editor.putBoolean("Connect_check", false);
+            ApplicationController.getInstance().editor.commit();
+            Log.i("myTag","init unconnected");
+        }
+
     }
 
     @Override
@@ -50,7 +126,7 @@ public class SplashActivity extends AppCompatActivity implements SplashView{
                 public void run() {
                     finish();   // 어플리케이션 종료
                 }
-            }, 4000);
+            }, 2000);
 
         } else {
             // 장치가 블루투스 지원하는 경우
@@ -71,8 +147,13 @@ public class SplashActivity extends AppCompatActivity implements SplashView{
     }
 
     @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(TypekitContextWrapper.wrap(newBase));
+    }
+
+    @Override
     public void moveMainPage() {
-        Toast.makeText(getApplicationContext(),"블루투스 연결 확인",Toast.LENGTH_SHORT).show();
+//        Toast.makeText(getApplicationContext(),"블루투스 연결 확인",Toast.LENGTH_SHORT).show();
 
         Handler handler = new Handler();
         handler.postDelayed(new Runnable() {

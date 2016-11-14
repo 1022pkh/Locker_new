@@ -4,13 +4,35 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".splash.view.SplashActivity"
-    android:gravity="center">
+    android:background="#3F51B5"
+    android:gravity="center_horizontal"
+    android:orientation="vertical">
 
     <ImageView
-        android:layout_gravity="center"
         android:id="@+id/rogo"
-        android:layout_width="250dp"
+        android:layout_marginTop="170dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@drawable/ic_splash"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textSize="20sp"
+        android:text="잠금잠금"
+        android:textStyle="bold"
+        android:textColor="#ffffff"
+        />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginBottom="66dp"
+        android:gravity="center|bottom"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:textColor="#ffffff"
+        android:text="CREATED BY 잠금이"/>
 
 </LinearLayout>

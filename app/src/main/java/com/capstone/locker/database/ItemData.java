@@ -7,7 +7,7 @@ public class ItemData {
     public String nickName;
     public String qualificaion;
     public String ownerPwd;
-    public String questPwd;
+    public String guestPwd;
     public int icon;
     public String created;
     public int pushcheck;

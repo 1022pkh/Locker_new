@@ -2,7 +2,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.capstone.locker">
 
+
+    <!--
+         The ACCESS_COARSE/FINE_LOCATION permissions are not required to use
+         Google Maps Android API v2, but you must specify either coarse or fine
+         location permissions for the 'MyLocation' functionality. 
+    -->
+
     <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
 
     <application
         android:name=".application.ApplicationController"
@@ -23,14 +36,55 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+
+
         <activity
             android:name=".register.RegisterActivity"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".register.owner.OwnerActivity"
             android:theme="@style/AppTheme.NoActionBar" />
-        <activity android:name=".register.guest.GuestActivity" />
-        <activity android:name=".detail.DetailActivity"
+        <activity
+            android:name=".register.guest.GuestActivity"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".detail.DetailActivity"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".modify.ModifyActivity"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity android:name=".Buletooth.view.DeviceSearchActivity" />
+
+        <activity
+            android:name=".Buletooth.view.DeviceControlActivity"
+            android:theme="@android:style/Theme.Holo.Light.DarkActionBar" />
+
+
+        <service
+            android:name=".Buletooth.presenter.BluetoothLeService"
+            android:enabled="true"/>
+
+        <!--
+             The API key for Google Maps-based APIs is defined as a string resource.
+             (See the file "res/values/google_maps_api.xml").
+             Note that the API key is linked to the encryption key used to sign the APK.
+             You need a different API key for each encryption key, including the release key that is used to
+             sign the APK for publishing.
+             You can define the keys for the debug and release targets in src/debug/ and src/release/. 
+        -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/google_maps_key" />
+
+        <activity
+            android:name=".detail.map.MapsActivity"
+            android:label="@string/title_activity_maps"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".modify.ModifyGuestActivity"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity android:name=".order.OrderActivity"
             android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>
 

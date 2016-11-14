@@ -75,14 +75,14 @@ public class CustomAdapter extends BaseAdapter{
         viewHolder.TextView_name.setText(itemData_temp.nickName);
         viewHolder.TextView_qualification.setText(itemData_temp.qualification);
 
-        if(itemData_temp.img == 1){
-            viewHolder.img_item.setImageResource(R.drawable.tempimg);
+        if(itemData_temp.img == 1){ //cycle
+            viewHolder.img_item.setImageResource(R.drawable.ic_owner);
         }
-        else if(itemData_temp.img == 2){
-            viewHolder.img_item.setImageResource(R.drawable.tempimg2);
+        else if(itemData_temp.img == 2){ //lock
+            viewHolder.img_item.setImageResource(R.drawable.ic_lock);
         }
-        else if(itemData_temp.img == 3){
-            viewHolder.img_item.setImageResource(R.drawable.tempimg3);
+        else if(itemData_temp.img == 3){ //owner
+            viewHolder.img_item.setImageResource(R.drawable.ic_cycle);
         }
         return convertView;
     }

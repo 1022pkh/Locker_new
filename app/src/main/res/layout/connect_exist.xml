@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="72dp"
+    android:background="#ffffff"
+    android:gravity="center_vertical">
+
+    <ImageView
+        android:id="@+id/connectIcon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="18dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:src="@drawable/ic_owner"/>
+
+
+    <TextView
+        android:id="@+id/connectQualification"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="14dp"
+        android:textSize="14sp"
+        android:textColor="#000000"
+        android:text="Owner"/>
+
+    <View
+        android:layout_width="2dp"
+        android:layout_height="14dp"
+        android:layout_marginLeft="14dp"
+        android:background="#B5B5B5"/>
+
+    <TextView
+        android:id="@+id/connectName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="14dp"
+        android:textSize="14sp"
+        android:textColor="#000000"
+        android:text="123 사물함"/>
+
+
+</LinearLayout>

@@ -3,27 +3,33 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context="com.capstone.locker.detail.DetailActivity"
     android:orientation="vertical"
-    android:weightSum="10">
+    android:weightSum="10"
+    android:background="#ffffff">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:weightSum="10"
+        android:layout_height="48dp"
         android:gravity="center"
-        android:background="#dddddd">
+        android:background="#FAFAFA">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="상세 보기"
-            android:gravity="center"
-            android:textSize="20sp"
-            android:textColor="#000000"/>
+            android:text="상세보기"
+            android:textSize="14sp"
+            app:font="Bold"
+            android:textColor="#3F51B5"/>
 
     </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#DEDEDE"/>
+
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -32,28 +38,26 @@
         android:weightSum="10"
         android:gravity="center">
 
-        <de.hdodenhof.circleimageview.CircleImageView
-            xmlns:app="http://schemas.android.com/apk/res-auto"
+        <ImageView
             android:id="@+id/profile_image"
             android:layout_width="160dp"
             android:layout_height="160dp"
-            android:src="@drawable/tempimg"
-            app:civ_border_width="2dp"
-            app:civ_border_color="#ffffff"/>
+            android:src="@drawable/ic_owner"/>
 
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="5.5"
-        android:weightSum="10"
+        android:layout_weight="6.5"
+        android:weightSum="12"
         android:orientation="vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_weight="1.5"
+            android:gravity="center_vertical"
             android:weightSum="10">
 
             <TextView
@@ -64,14 +68,15 @@
                 android:paddingLeft="15dp"
                 android:textColor="#000000"
                 android:textSize="14sp"
-                android:text="이름 : "/>
+                android:text="이름"/>
 
             <TextView
                 android:id="@+id/nickname"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="7"
-                android:gravity="center"
+                android:gravity="left"
+                android:paddingLeft="10dp"
                 android:textColor="#000000"
                 android:textSize="14sp"
                 android:text=""/>
@@ -81,7 +86,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_weight="1.5"
+            android:gravity="center_vertical"
             android:weightSum="10">
 
             <TextView
@@ -92,14 +98,15 @@
                 android:paddingLeft="15dp"
                 android:textColor="#000000"
                 android:textSize="14sp"
-                android:text="모델 이름 : "/>
+                android:text="모델 이름"/>
 
             <TextView
                 android:id="@+id/moduleIdentiname"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="7"
-                android:gravity="center"
+                android:gravity="left"
+                android:paddingLeft="10dp"
                 android:textColor="#000000"
                 android:textSize="14sp"
                 android:text=""/>
@@ -109,7 +116,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_weight="1.5"
+            android:gravity="center_vertical"
             android:weightSum="10">
 
             <TextView
@@ -120,14 +128,15 @@
                 android:paddingLeft="15dp"
                 android:textColor="#000000"
                 android:textSize="14sp"
-                android:text="권한 : "/>
+                android:text="권한"/>
 
             <TextView
                 android:id="@+id/qualificaion"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="7"
-                android:gravity="center"
+                android:gravity="left"
+                android:paddingLeft="10dp"
                 android:textColor="#000000"
                 android:textSize="14sp"
                 android:text=""/>
@@ -137,7 +146,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_weight="1.5"
+            android:gravity="center_vertical"
             android:weightSum="10">
 
             <TextView
@@ -148,14 +158,15 @@
                 android:paddingLeft="15dp"
                 android:textColor="#000000"
                 android:textSize="14sp"
-                android:text="등록 일자 : "/>
+                android:text="등록 일자"/>
 
             <TextView
                 android:id="@+id/registerDate"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="7"
-                android:gravity="center"
+                android:gravity="left"
+                android:paddingLeft="10dp"
                 android:textColor="#000000"
                 android:textSize="14sp"
                 android:text=""/>
@@ -165,7 +176,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_weight="1.5"
+            android:gravity="center_vertical"
             android:weightSum="10">
 
             <TextView
@@ -175,15 +187,16 @@
                 android:gravity="right"
                 android:paddingLeft="15dp"
                 android:textColor="#000000"
-                android:textSize="14sp"
-                android:text="Owner Pwd : "/>
+                android:textSize="13sp"
+                android:text="Owner 비밀번호"/>
 
             <TextView
                 android:id="@+id/ownerPwd"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="7"
-                android:gravity="center"
+                android:gravity="left"
+                android:paddingLeft="10dp"
                 android:textColor="#000000"
                 android:textSize="14sp"
                 android:text=""/>
@@ -194,7 +207,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_weight="1.5"
+            android:gravity="center_vertical"
             android:weightSum="10">
 
             <TextView
@@ -204,15 +218,16 @@
                 android:gravity="right"
                 android:paddingLeft="15dp"
                 android:textColor="#000000"
-                android:textSize="14sp"
-                android:text="Guest Pwd : "/>
+                android:textSize="13sp"
+                android:text="Guest 비밀번호"/>
 
             <TextView
                 android:id="@+id/guestPwd"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="7"
-                android:gravity="center"
+                android:gravity="left"
+                android:paddingLeft="10dp"
                 android:textColor="#000000"
                 android:textSize="14sp"
                 android:text=""/>
@@ -222,7 +237,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="4"
+            android:layout_weight="3"
             android:gravity="center"
             android:weightSum="10">
 
@@ -230,6 +245,8 @@
                 android:id="@+id/showLocationBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:background="@drawable/border_circle_background"
+                android:textColor="#ffffff"
                 android:text="위치 보기"/>
 
             <Button
@@ -237,6 +254,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="50dp"
+                android:background="@drawable/border_circle_background"
+                android:textColor="#ffffff"
                 android:text="닫 기"/>
 
         </LinearLayout>
