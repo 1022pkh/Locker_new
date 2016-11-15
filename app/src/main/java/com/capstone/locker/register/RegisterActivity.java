@@ -14,6 +14,7 @@ import android.widget.Toast;
 import com.capstone.locker.Buletooth.view.DeviceSearchActivity;
 import com.capstone.locker.R;
 import com.capstone.locker.application.ApplicationController;
+import com.capstone.locker.database.ItemData;
 import com.capstone.locker.register.guest.GuestActivity;
 import com.capstone.locker.register.owner.OwnerActivity;
 import com.tsengvn.typekit.TypekitContextWrapper;
@@ -35,6 +36,7 @@ public class RegisterActivity extends AppCompatActivity {
 
     Boolean checkBluetooth = false;
     Boolean checkConnectBLE = false;
+    Boolean registerCheck = false;
 
     private BluetoothAdapter mBluetoothAdapter;
     private static final int REQUEST_CONNECT_DEVICE = 1;
@@ -57,8 +59,24 @@ public class RegisterActivity extends AppCompatActivity {
             checkConnectBLE = true;
             Log.i("myTag",ApplicationController.getInstance().mDeviceAddress);
             connectBLE.setText(ApplicationController.getInstance().mDeviceAddress);
+
+
+            registerBLECheck();
+
         }
 
+    }
+
+    public void registerBLECheck(){
+        ItemData getItem = ApplicationController.getInstance().mDbOpenHelper.DbFindMoudle(ApplicationController.getInstance().mDeviceAddress);
+
+        // 등록된 장치
+        if(getItem.identNum != null){
+            registerCheck = true;
+        }
+        else{
+            registerCheck = false;
+        }
     }
 
     @Override
@@ -78,6 +96,14 @@ public class RegisterActivity extends AppCompatActivity {
 
     @OnClick(R.id.registerOwner)
     public void moveOwnerPage(){
+
+        if(registerCheck)
+        {
+            Toast.makeText(getApplicationContext(),"이미 등록된 장치입니다.",Toast.LENGTH_SHORT).show();
+            return ;
+        }
+
+
         if(checkBluetooth == true){
             if(checkConnectBLE == true){
                 Intent intent = new Intent(getApplicationContext(), OwnerActivity.class);
@@ -95,6 +121,12 @@ public class RegisterActivity extends AppCompatActivity {
 
     @OnClick(R.id.registerGuest)
     public void moveGuestPage(){
+
+        if(registerCheck)
+        {
+            Toast.makeText(getApplicationContext(),"이미 등록된 장치입니다.",Toast.LENGTH_SHORT).show();
+            return ;
+        }
 
         if(checkBluetooth == true){
             if(checkConnectBLE == true){

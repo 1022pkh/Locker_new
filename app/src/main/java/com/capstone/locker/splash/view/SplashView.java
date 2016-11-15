@@ -6,5 +6,7 @@ package com.capstone.locker.splash.view;
 public interface SplashView {
     void checkBlueTooth();
     void moveMainPage();
+    void moveOrderPage();
     void noConnectBluetooth();
+    void lastBLEConnect();
 }

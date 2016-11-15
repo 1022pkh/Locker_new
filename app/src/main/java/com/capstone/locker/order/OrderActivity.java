@@ -18,6 +18,7 @@ import com.capstone.locker.Buletooth.presenter.BluetoothLeService;
 import com.capstone.locker.Buletooth.presenter.SampleGattAttributes;
 import com.capstone.locker.R;
 import com.capstone.locker.application.ApplicationController;
+import com.capstone.locker.main.view.MainActivity;
 import com.tsengvn.typekit.TypekitContextWrapper;
 
 import java.util.ArrayList;
@@ -140,6 +141,17 @@ public class OrderActivity extends AppCompatActivity {
         ApplicationController.editor.putString("mDeviceName", ApplicationController.getInstance().mDeviceName);
         ApplicationController.editor.commit();
 
+    }
+
+
+    @Override
+    public void onBackPressed() {
+        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+        finish();
     }
 
     @Override
