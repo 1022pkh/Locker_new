@@ -1,9 +1,11 @@
 package com.capstone.locker.main.view;
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -73,6 +75,21 @@ public class MainActivity extends AppCompatActivity implements MainView{
     private long backPressedTime = 0;
 
     public BluetoothLeService mBluetoothLeService;
+    private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final String action = intent.getAction();
+            if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
+                invalidateOptionsMenu();
+            } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
+                invalidateOptionsMenu();
+            } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
+            } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
+            }
+
+
+        }
+    };
 
     public final ServiceConnection mServiceConnection = new ServiceConnection() {
 
@@ -84,7 +101,8 @@ public class MainActivity extends AppCompatActivity implements MainView{
 //                finish();
             }
             // Automatically connects to the device upon successful start-up initialization.
-            mBluetoothLeService.connect(ApplicationController.getInstance().mDeviceAddress);
+            if(ApplicationController.getInstance().mDeviceAddress.length()>0)
+                mBluetoothLeService.connect(ApplicationController.getInstance().mDeviceAddress);
         }
 
         @Override
@@ -126,12 +144,8 @@ public class MainActivity extends AppCompatActivity implements MainView{
 
 
 
-        if(ApplicationController.connectInfo.getBoolean("Connect_check", false)){
-
-            Intent gattServiceIntent = new Intent(getApplicationContext(), BluetoothLeService.class);
-            bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
-        }
-
+        Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
+        bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
 
 
         /**
@@ -302,6 +316,27 @@ public class MainActivity extends AppCompatActivity implements MainView{
         super.attachBaseContext(TypekitContextWrapper.wrap(newBase));
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
+
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(mGattUpdateReceiver);
+    }
+
+    private static IntentFilter makeGattUpdateIntentFilter() {
+        final IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
+        intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
+        return intentFilter;
+    }
 
     @Override
     protected void onDestroy() {
@@ -546,6 +581,9 @@ public class MainActivity extends AppCompatActivity implements MainView{
                                         .setPositiveButton("확인", new DialogInterface.OnClickListener(){
                                             // 확인 버튼 클릭시 설정
                                             public void onClick(DialogInterface dialog, int whichButton){
+
+                                                mBluetoothLeService.disconnect();
+
                                                 ApplicationController.getInstance().mDeviceName = "";
                                                 ApplicationController.getInstance().mDeviceAddress = "";
                                                 ApplicationController.editor.putBoolean("Connect_check", false);

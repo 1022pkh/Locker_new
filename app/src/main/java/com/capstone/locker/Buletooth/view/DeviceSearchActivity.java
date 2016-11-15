@@ -89,6 +89,10 @@ public class DeviceSearchActivity extends ActionBarActivity {
 
     private ProgressDialog mProgressDialog;
     private ProgressDialog mConnectDialog;
+    Boolean mProgressCheck = false;
+    Boolean mConneckCheck = false;
+    Boolean mDialogCheck = false;
+
 
 //    // Code to manage Service lifecycle.
 //    private final ServiceConnection mServiceConnection = new ServiceConnection() {
@@ -133,8 +137,23 @@ public class DeviceSearchActivity extends ActionBarActivity {
 
                 if(mConnectDialog!=null){
                     mConnectDialog.dismiss();
+                    mConneckCheck = false;
                 }
-                showServiceDiscoveryAlert();
+
+
+                /**
+                 * 이미 등록된 기기는 유효성 검사를 할 필요가 없다.
+                 */
+                ItemData getItem = ApplicationController.getInstance().mDbOpenHelper.DbFindMoudle(mDeviceAddress);
+
+                // 등록된 장치
+                if(getItem.identNum != null){
+                    alreadyRegisterBLE();
+                }
+                // 등록되지 않은 장치
+                else{
+                    showServiceDiscoveryAlert();
+                }
 
 
             } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
@@ -142,6 +161,7 @@ public class DeviceSearchActivity extends ActionBarActivity {
 
                 if(mConnectDialog!=null){
                     mConnectDialog.dismiss();
+                    mConneckCheck = false;
                 }
 
                 mConnected = false;
@@ -165,9 +185,26 @@ public class DeviceSearchActivity extends ActionBarActivity {
 
                 if(mConnectDialog!=null){
                     mConnectDialog.dismiss();
+                    mConneckCheck = false;
                 }
-                mProgressDialog.dismiss();
-                BLECheckAndDialog();
+                if(mProgressDialog!=null){
+                    mProgressDialog.dismiss();
+                    mProgressCheck = false;
+                }
+
+
+                ItemData getItem = ApplicationController.getInstance().mDbOpenHelper.DbFindMoudle(mDeviceAddress);
+
+                // 등록된 장치
+                if(getItem.identNum != null){
+                    ;
+                }
+                // 등록되지 않은 장치
+                else{
+                    notYetRegisterBLE();
+                }
+
+
 
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
 
@@ -271,7 +308,11 @@ public class DeviceSearchActivity extends ActionBarActivity {
         mConnectDialog.setIndeterminate(true);
         mConnectDialog.setCancelable(false);
         mConnectDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-        mConnectDialog.show();
+
+        if(mConneckCheck == false) {
+            mConnectDialog.show();
+            mConneckCheck = true;
+        }
 
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
@@ -279,6 +320,7 @@ public class DeviceSearchActivity extends ActionBarActivity {
             public void run() {
                 if(mConnectDialog!=null){
                     mConnectDialog.dismiss();
+                    mConneckCheck = false;
                 }
 
             }
@@ -295,7 +337,11 @@ public class DeviceSearchActivity extends ActionBarActivity {
         mProgressDialog.setIndeterminate(true);
         mProgressDialog.setCancelable(false);
         mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-        mProgressDialog.show();
+
+        if(mProgressCheck == false){
+            mProgressDialog.show();
+            mProgressCheck = true;
+        }
 
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
@@ -303,6 +349,7 @@ public class DeviceSearchActivity extends ActionBarActivity {
             public void run() {
                 if(mProgressDialog!=null){
                     mProgressDialog.dismiss();
+                    mProgressCheck = false;
                 }
 
             }
@@ -310,92 +357,31 @@ public class DeviceSearchActivity extends ActionBarActivity {
         return timer;
     }
 
+    public void alreadyRegisterBLE(){
+        AlertDialog.Builder builder = new AlertDialog.Builder(DeviceSearchActivity.this);     // 여기서 this는 Activity의 this
 
+        // 여기서 부터는 알림창의 속성 설정
+        builder.setTitle("등록된 장치입니다.")        // 메세지 설정
+                .setMessage("연결하시겠습니까?")
+                .setCancelable(true)        // 뒤로 버튼 클릭시 취소 가능 설정
+                .setPositiveButton("확인", new DialogInterface.OnClickListener(){
+                    // 확인 버튼 클릭시 설정
+                    public void onClick(DialogInterface dialog, int whichButton){
 
-    public void BLECheckAndDialog(){
-
-
-        if(mGattCharacteristics == null){
-            Toast.makeText(getApplicationContext(),"잠금장치 BLE 장치가 아닙니다.",Toast.LENGTH_SHORT).show();
-        }
-        else{
-
-            /**
-             * 어떤 서비스가 있느지 체크..
-             */
-
-            for(int i=0;i<mGattCharacteristics.size();i++){
-                for(int j=0;j<mGattCharacteristics.get(i).size();j++)
-                    Log.i("myTag", "GATT : "+String.valueOf(mGattCharacteristics.get(i).get(j).getUuid()));
-
-                Log.i("myTag","  ");
-            }
-
-
-
-            ItemData getItem = ApplicationController.getInstance().mDbOpenHelper.DbFindMoudle(mDeviceAddress);
-
-            if(getItem.identNum == null){
-                AlertDialog.Builder builder = new AlertDialog.Builder(DeviceSearchActivity.this);     // 여기서 this는 Activity의 this
-
-                // 여기서 부터는 알림창의 속성 설정
-                builder.setTitle("등록되지 않은 장치입니다.")        // 메세지 설정
-                        .setMessage("등록하시겠습니까?")
-                        .setCancelable(true)        // 뒤로 버튼 클릭시 취소 가능 설정
-                        .setPositiveButton("확인", new DialogInterface.OnClickListener(){
-                            // 확인 버튼 클릭시 설정
-                            public void onClick(DialogInterface dialog, int whichButton){
-
-                                ApplicationController.getInstance().mDeviceName = mDeviceName;
-                                ApplicationController.getInstance().mDeviceAddress = mDeviceAddress;
+                        ApplicationController.getInstance().mDeviceName = mDeviceName;
+                        ApplicationController.getInstance().mDeviceAddress = mDeviceAddress;
 
 
 //                                ApplicationController.editor.putString("mDeviceAddress", mDeviceAddress);
 //                                ApplicationController.editor.putString("mDeviceName", mDeviceName);
-                                ApplicationController.editor.putBoolean("Connect_check", true);
-                                ApplicationController.editor.commit();
-
-                                Intent intent = new Intent(getApplicationContext(), RegisterActivity.class);
-                                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                                startActivity(intent);
-                                finish();
-                            }
-                        })
-                        .setNegativeButton("취소", new DialogInterface.OnClickListener(){
-                            // 취소 버튼 클릭시 설정
-                            public void onClick(DialogInterface dialog, int whichButton){
-                                dialog.cancel();
-                            }
-                        });
-
-                AlertDialog dialog = builder.create();    // 알림창 객체 생성
-                dialog.show();    // 알림창 띄우기
-            }
-            else{
-                AlertDialog.Builder builder = new AlertDialog.Builder(DeviceSearchActivity.this);     // 여기서 this는 Activity의 this
-
-                // 여기서 부터는 알림창의 속성 설정
-                builder.setTitle("등록된 장치입니다.")        // 메세지 설정
-                        .setMessage("연결하시겠습니까?")
-                        .setCancelable(true)        // 뒤로 버튼 클릭시 취소 가능 설정
-                        .setPositiveButton("확인", new DialogInterface.OnClickListener(){
-                            // 확인 버튼 클릭시 설정
-                            public void onClick(DialogInterface dialog, int whichButton){
-
-                                ApplicationController.getInstance().mDeviceName = mDeviceName;
-                                ApplicationController.getInstance().mDeviceAddress = mDeviceAddress;
+                        ApplicationController.editor.putBoolean("Connect_check", true);
+                        ApplicationController.editor.commit();
 
 
-//                                ApplicationController.editor.putString("mDeviceAddress", mDeviceAddress);
-//                                ApplicationController.editor.putString("mDeviceName", mDeviceName);
-                                ApplicationController.editor.putBoolean("Connect_check", true);
-                                ApplicationController.editor.commit();
-
-
-                                /**
-                                 * 여기서 연결된 ble에 해당하는 부분에 대해서
-                                 * GATT Service를 찾고 우리가 사용하는 서비스로 연결해야함
-                                 */
+                        /**
+                         * 여기서 연결된 ble에 해당하는 부분에 대해서
+                         * GATT Service를 찾고 우리가 사용하는 서비스로 연결해야함
+                         */
 
 //                                final Intent intent = new Intent(getApplicationContext(), DeviceControlActivity.class);
 //                                intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_NAME, mDeviceName);
@@ -435,25 +421,67 @@ public class DeviceSearchActivity extends ActionBarActivity {
 //
 
 
-                                moveMainPage();
+                        moveMainPage();
 
-                            }
-                        })
-                        .setNegativeButton("취소", new DialogInterface.OnClickListener(){
-                            // 취소 버튼 클릭시 설정
-                            public void onClick(DialogInterface dialog, int whichButton){
-                                dialog.cancel();
-                            }
-                        });
+                    }
+                })
+                .setNegativeButton("취소", new DialogInterface.OnClickListener(){
+                    // 취소 버튼 클릭시 설정
+                    public void onClick(DialogInterface dialog, int whichButton){
+                        dialog.cancel();
+                        mDialogCheck = false;
+                    }
+                });
 
-                AlertDialog dialog = builder.create();    // 알림창 객체 생성
-                dialog.show();    // 알림창 띄우기
-            }
+        AlertDialog dialog = builder.create();    // 알림창 객체 생성
+
+        if(mDialogCheck == false){
+            dialog.show();    // 알림창 띄우기
+            mDialogCheck = true;
         }
-
-
     }
 
+
+    public void notYetRegisterBLE(){
+        AlertDialog.Builder builder = new AlertDialog.Builder(DeviceSearchActivity.this);     // 여기서 this는 Activity의 this
+
+        // 여기서 부터는 알림창의 속성 설정
+        builder.setTitle("등록되지 않은 장치입니다.")        // 메세지 설정
+                .setMessage("등록하시겠습니까?")
+                .setCancelable(true)        // 뒤로 버튼 클릭시 취소 가능 설정
+                .setPositiveButton("확인", new DialogInterface.OnClickListener(){
+                    // 확인 버튼 클릭시 설정
+                    public void onClick(DialogInterface dialog, int whichButton){
+
+                        ApplicationController.getInstance().mDeviceName = mDeviceName;
+                        ApplicationController.getInstance().mDeviceAddress = mDeviceAddress;
+
+
+//                                ApplicationController.editor.putString("mDeviceAddress", mDeviceAddress);
+//                                ApplicationController.editor.putString("mDeviceName", mDeviceName);
+                        ApplicationController.editor.putBoolean("Connect_check", true);
+                        ApplicationController.editor.commit();
+
+                        Intent intent = new Intent(getApplicationContext(), RegisterActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        startActivity(intent);
+                        finish();
+                    }
+                })
+                .setNegativeButton("취소", new DialogInterface.OnClickListener(){
+                    // 취소 버튼 클릭시 설정
+                    public void onClick(DialogInterface dialog, int whichButton){
+                        dialog.cancel();
+                        mDialogCheck = false;
+                    }
+                });
+
+        AlertDialog dialog = builder.create();    // 알림창 객체 생성
+        if(mDialogCheck == false){
+            dialog.show();    // 알림창 띄우기
+            mDialogCheck = true;
+        }
+    }
 
     public void moveMainPage(){
 //        Intent intent = getIntent();
@@ -514,22 +542,6 @@ public class DeviceSearchActivity extends ActionBarActivity {
                 gattCharacteristicData.add(gattCharacteristicGroupData);
             }
         }
-
-//        SimpleExpandableListAdapter gattServiceAdapter = new SimpleExpandableListAdapter(
-//                this,
-//                gattServiceData,
-//                android.R.layout.simple_expandable_list_item_2,
-//                new String[] {LIST_NAME, LIST_UUID},
-//                new int[] { android.R.id.text1, android.R.id.text2 },
-//                gattCharacteristicData,
-//                android.R.layout.simple_expandable_list_item_2,
-//                new String[] {LIST_NAME, LIST_UUID},
-//                new int[] { android.R.id.text1, android.R.id.text2 }
-//        );
-
-        /**
-         * 어댑터 클릭 이벤트 찾아야함
-         */
 
 
     }

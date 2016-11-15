@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -48,14 +49,13 @@ public class RegisterActivity extends AppCompatActivity {
 
         checkBlueTooth();
 
-        if(ApplicationController.getInstance().mDeviceAddress == null)
-            ApplicationController.getInstance().mDeviceAddress = "";
+//        if(ApplicationController.getInstance().mDeviceAddress == null)
+//            ApplicationController.getInstance().mDeviceAddress = "";
 
-        if(ApplicationController.getInstance().mDeviceAddress.equals("")){
-
-        }
-        else{
+        if(ApplicationController.connectInfo.getBoolean("Connect_check", false)){
+            Log.i("myTag","true");
             checkConnectBLE = true;
+            Log.i("myTag",ApplicationController.getInstance().mDeviceAddress);
             connectBLE.setText(ApplicationController.getInstance().mDeviceAddress);
         }
 
