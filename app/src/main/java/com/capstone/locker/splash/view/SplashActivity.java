@@ -18,6 +18,7 @@ import com.capstone.locker.Buletooth.presenter.BluetoothLeService;
 import com.capstone.locker.application.ApplicationController;
 import com.capstone.locker.main.view.MainActivity;
 import com.capstone.locker.R;
+import com.capstone.locker.order.OrderActivity;
 import com.tsengvn.typekit.TypekitContextWrapper;
 
 public class SplashActivity extends AppCompatActivity implements SplashView{
@@ -72,45 +73,9 @@ public class SplashActivity extends AppCompatActivity implements SplashView{
         checkBlueTooth();
 
 
-        // TODO: 2016. 10. 4. 2. 마지막으로 연결했던 모듈 확인 후 연결
-
-
-        mDeviceAddress = ApplicationController.getInstance().mDeviceAddress;
-        mDeviceName = ApplicationController.getInstance().mDeviceName;
-
-        if(mDeviceAddress != null && mDeviceAddress.length() > 0){
-            Log.i("myTag","init connected");
-
-            Intent gattServiceIntent = new Intent(getApplicationContext(), BluetoothLeService.class);
-            bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
-
-
-            if (ApplicationController.getInstance().mBluetoothLeService != null) {
-                final boolean result = ApplicationController.getInstance().mBluetoothLeService.connect(mDeviceAddress);
-                Log.i("myTag", "Connect request result=" + result);
-
-                if(result){
-                    ApplicationController.getInstance().editor.putBoolean("Connect_check", true);
-                    ApplicationController.getInstance().editor.commit();
-                }
-                else{
-                    ApplicationController.getInstance().editor.putBoolean("Connect_check", false);
-                    ApplicationController.getInstance().editor.commit();
-                }
-            }
-            else{
-                ApplicationController.getInstance().editor.putBoolean("Connect_check", false);
-                ApplicationController.getInstance().editor.commit();
-            }
-
-        }
-        else{
-            ApplicationController.getInstance().editor.putBoolean("Connect_check", false);
-            ApplicationController.getInstance().editor.commit();
-            Log.i("myTag","init unconnected");
-        }
 
     }
+
 
     @Override
     public void checkBlueTooth() {
@@ -140,7 +105,10 @@ public class SplashActivity extends AppCompatActivity implements SplashView{
                 // 블루투스를 지원하며 활성 상태인 경우
                 // 페어링된 기기 목록을 보여주고 연결할 장치를 선택.
                 buletoothCheck = true;
-                moveMainPage();
+
+
+                //moveMainPage();
+                lastBLEConnect();
 
             }
         }
@@ -167,8 +135,73 @@ public class SplashActivity extends AppCompatActivity implements SplashView{
     }
 
     @Override
+    public void moveOrderPage() {
+//        Toast.makeText(getApplicationContext(),"블루투스 연결 확인",Toast.LENGTH_SHORT).show();
+
+        Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                Intent intent = new Intent(getApplicationContext(), OrderActivity.class);
+                startActivity(intent);
+                finish();
+            }
+        }, 2000);
+    }
+
+    @Override
     public void noConnectBluetooth() {
         Toast.makeText(getApplicationContext(),"블루투스 연결 실패 \n블루투스 연결 설정을 확인 후 다시 실행해주세요",Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void lastBLEConnect() {
+        // TODO: 2016. 10. 4. 2. 마지막으로 연결했던 모듈 확인 후 연결
+
+        mDeviceAddress = ApplicationController.getInstance().mDeviceAddress;
+        mDeviceName = ApplicationController.getInstance().mDeviceName;
+
+        Log.i("myTag","마지막으로 연결했던 장치 검색 후 연결 시");
+        Log.i("myTag","last BLE name : " + mDeviceName);
+        Log.i("myTag","last BLE address : " + mDeviceAddress);
+
+        if(mDeviceAddress != null && mDeviceAddress.length() > 0){
+
+
+            Intent gattServiceIntent = new Intent(getApplicationContext(), BluetoothLeService.class);
+            bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+
+
+            if (ApplicationController.getInstance().mBluetoothLeService != null) {
+                final boolean result = ApplicationController.getInstance().mBluetoothLeService.connect(mDeviceAddress);
+                Log.i("myTag", "Connect request result=" + result);
+
+                if(result){
+                    ApplicationController.getInstance().editor.putBoolean("Connect_check", true);
+                    ApplicationController.getInstance().editor.commit();
+                    moveOrderPage();
+                }
+                else{
+                    ApplicationController.getInstance().editor.putBoolean("Connect_check", false);
+                    ApplicationController.getInstance().editor.commit();
+                    moveMainPage();
+                }
+            }
+            else{
+                ApplicationController.getInstance().editor.putBoolean("Connect_check", false);
+                ApplicationController.getInstance().editor.commit();
+                moveMainPage();
+            }
+
+        }
+        else{
+            ApplicationController.getInstance().editor.putBoolean("Connect_check", false);
+            ApplicationController.getInstance().editor.commit();
+            moveMainPage();
+            Log.i("myTag","init unconnected");
+        }
+
+
     }
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {

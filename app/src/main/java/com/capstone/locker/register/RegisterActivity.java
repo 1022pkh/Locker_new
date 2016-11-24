@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -13,6 +14,7 @@ import android.widget.Toast;
 import com.capstone.locker.Buletooth.view.DeviceSearchActivity;
 import com.capstone.locker.R;
 import com.capstone.locker.application.ApplicationController;
+import com.capstone.locker.database.ItemData;
 import com.capstone.locker.register.guest.GuestActivity;
 import com.capstone.locker.register.owner.OwnerActivity;
 import com.tsengvn.typekit.TypekitContextWrapper;
@@ -34,6 +36,7 @@ public class RegisterActivity extends AppCompatActivity {
 
     Boolean checkBluetooth = false;
     Boolean checkConnectBLE = false;
+    Boolean registerCheck = false;
 
     private BluetoothAdapter mBluetoothAdapter;
     private static final int REQUEST_CONNECT_DEVICE = 1;
@@ -48,17 +51,32 @@ public class RegisterActivity extends AppCompatActivity {
 
         checkBlueTooth();
 
-        if(ApplicationController.getInstance().mDeviceAddress == null)
-            ApplicationController.getInstance().mDeviceAddress = "";
+//        if(ApplicationController.getInstance().mDeviceAddress == null)
+//            ApplicationController.getInstance().mDeviceAddress = "";
 
-        if(ApplicationController.getInstance().mDeviceAddress.equals("")){
+        if(ApplicationController.connectInfo.getBoolean("Connect_check", false)){
+            Log.i("myTag","true");
+            checkConnectBLE = true;
+            Log.i("myTag",ApplicationController.getInstance().mDeviceAddress);
+            connectBLE.setText(ApplicationController.getInstance().mDeviceAddress);
 
+
+            registerBLECheck();
+
+        }
+
+    }
+
+    public void registerBLECheck(){
+        ItemData getItem = ApplicationController.getInstance().mDbOpenHelper.DbFindMoudle(ApplicationController.getInstance().mDeviceAddress);
+
+        // 등록된 장치
+        if(getItem.identNum != null){
+            registerCheck = true;
         }
         else{
-            checkConnectBLE = true;
-            connectBLE.setText(ApplicationController.getInstance().mDeviceAddress);
+            registerCheck = false;
         }
-
     }
 
     @Override
@@ -78,6 +96,14 @@ public class RegisterActivity extends AppCompatActivity {
 
     @OnClick(R.id.registerOwner)
     public void moveOwnerPage(){
+
+        if(registerCheck)
+        {
+            Toast.makeText(getApplicationContext(),"이미 등록된 장치입니다.",Toast.LENGTH_SHORT).show();
+            return ;
+        }
+
+
         if(checkBluetooth == true){
             if(checkConnectBLE == true){
                 Intent intent = new Intent(getApplicationContext(), OwnerActivity.class);
@@ -95,6 +121,12 @@ public class RegisterActivity extends AppCompatActivity {
 
     @OnClick(R.id.registerGuest)
     public void moveGuestPage(){
+
+        if(registerCheck)
+        {
+            Toast.makeText(getApplicationContext(),"이미 등록된 장치입니다.",Toast.LENGTH_SHORT).show();
+            return ;
+        }
 
         if(checkBluetooth == true){
             if(checkConnectBLE == true){

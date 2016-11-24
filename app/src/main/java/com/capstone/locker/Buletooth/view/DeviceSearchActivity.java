@@ -42,19 +42,9 @@ import com.tsengvn.typekit.TypekitContextWrapper;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-
-
-/**
- * 해당 페이지에서 작업해야할 일
- * 1. 블루투스 기기 검색  ---------- 해결
- * 2. 해당 기기와 연결
- * 3. 해당 기기와 연결 후 기능 선택화면이 아닌 바로 gatt기능을 할 수 있도록 코딩
- */
 
 
 public class DeviceSearchActivity extends ActionBarActivity {
@@ -90,28 +80,20 @@ public class DeviceSearchActivity extends ActionBarActivity {
     private ProgressDialog mProgressDialog;
     private ProgressDialog mConnectDialog;
 
-//    // Code to manage Service lifecycle.
-//    private final ServiceConnection mServiceConnection = new ServiceConnection() {
-//
-//        @Override
-//        public void onServiceConnected(ComponentName componentName, IBinder service) {
-//
-//            ApplicationController.getInstance().mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
-//
-//            if (!ApplicationController.getInstance().mBluetoothLeService.initialize()) {
-//                Log.e(TAG, "Unable to initialize Bluetooth");
-//                finish();
-//            }
-//            // Automatically connects to the device upon successful start-up initialization.
-//            ApplicationController.getInstance().mBluetoothLeService.connect(mDeviceAddress);
-////            Log.i("myTag", "onServiceConnected22");
-//        }
-//
-//        @Override
-//        public void onServiceDisconnected(ComponentName componentName) {
-//            ApplicationController.getInstance().mBluetoothLeService = null;
-//        }
-//    };
+    Handler progressHanlder;
+    Handler connectHanlder;
+
+    Runnable progressRunnable;
+    Runnable connectRunnable;
+
+
+    /**
+     * 두 번 클릭되었을 경우 다이얼로그 및 진행다이얼로그가 2개 뜨는 문제를 해결하기위해
+     * 만약 하나가 show되었을 경우 안보이도록 설정
+     */
+    Boolean mProgressCheck = false;
+    Boolean mConneckCheck = false;
+    Boolean mDialogCheck = false;
 
     // Handles various events fired by the Service.
     // ACTION_GATT_CONNECTED: connected to a GATT server.
@@ -128,13 +110,38 @@ public class DeviceSearchActivity extends ActionBarActivity {
 
                 Log.i("myTag","BroadcastReceiver 연결성공");
 
-//                updateConnectionState(R.string.connected);
                 invalidateOptionsMenu();
 
                 if(mConnectDialog!=null){
                     mConnectDialog.dismiss();
+                    mConneckCheck = false;
+//                    connectHanlder.removeCallbacks(connectRunnable);
                 }
-                showServiceDiscoveryAlert();
+
+
+                /**
+                 * 이미 등록된 기기는 유효성 검사를 할 필요가 없다.
+                 */
+                ItemData getItem = ApplicationController.getInstance().mDbOpenHelper.DbFindMoudle(mDeviceAddress);
+
+                // 등록된 장치
+                if(getItem.identNum != null){
+                    alreadyRegisterBLE();
+                }
+                // 등록되지 않은 장치
+                else{
+                    /**
+                     * ConnectProgress는 제거해주고
+                     * 유효성 검사를 진행한다.
+                     */
+                    if(mConnectDialog!=null){
+                        mConnectDialog.dismiss();
+                        mConneckCheck = false;
+//                        connectHanlder.removeCallbacks(connectRunnable);
+                    }
+
+                    showServiceDiscoveryAlert();
+                }
 
 
             } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
@@ -142,15 +149,25 @@ public class DeviceSearchActivity extends ActionBarActivity {
 
                 if(mConnectDialog!=null){
                     mConnectDialog.dismiss();
+                    mConneckCheck = false;
+//                    connectHanlder.removeCallbacks(connectRunnable);
                 }
+
+                if(mProgressDialog!=null && mProgressCheck==true ){
+                    mProgressDialog.dismiss();
+                    mProgressCheck = false;
+                    Toast.makeText(getApplicationContext(),"유효하지않은 장치입니다.",Toast.LENGTH_SHORT).show();
+//                    progressHanlder.removeCallbacks(progressRunnable);
+                }
+
 
                 mConnected = false;
 //                updateConnectionState(R.string.disconnected);
                 ApplicationController.getInstance().mDeviceAddress = "";
                 ApplicationController.getInstance().mDeviceName = "";
 
-                ApplicationController.editor.putString("mDeviceAddress", "");
-                ApplicationController.editor.putString("mDeviceName", "");
+//                ApplicationController.editor.putString("mDeviceAddress", "");
+//                ApplicationController.editor.putString("mDeviceName", "");
                 ApplicationController.editor.putBoolean("Connect_check", false);
                 ApplicationController.editor.commit();
 
@@ -163,11 +180,41 @@ public class DeviceSearchActivity extends ActionBarActivity {
                 // Show all the supported services and characteristics on the user interface.
                 displayGattServices(ApplicationController.getInstance().mBluetoothLeService.getSupportedGattServices());
 
-                if(mConnectDialog!=null){
+                if(mConnectDialog!=null && mConneckCheck == true ){
                     mConnectDialog.dismiss();
+                    mConneckCheck = false;
+//                    connectHanlder.removeCallbacks(connectRunnable);
                 }
-                mProgressDialog.dismiss();
-                BLECheckAndDialog();
+                if(mProgressDialog!=null && mProgressCheck == true){
+                    mProgressDialog.dismiss();
+                    mProgressCheck = false;
+//                    progressHanlder.removeCallbacks(progressRunnable);
+                }
+
+
+                /**
+                 * 우리 어플리케이션을 이용할 수 있는 GATT 서비스가 있는 지 체크
+                 */
+                //있을 경우
+                if (mGattCharacteristics.size() > 0){
+                    ItemData getItem = ApplicationController.getInstance().mDbOpenHelper.DbFindMoudle(mDeviceAddress);
+
+                    // 등록된 장치
+                    if(getItem.identNum != null){
+                        ;
+                    }
+                    // 등록되지 않은 장치
+                    else{
+                        notYetRegisterBLE();
+                    }
+                }
+                //없을 경우
+                else{
+                    Toast.makeText(getApplicationContext(),"해당 앱을 이용할 수 없는 장치입니다.",Toast.LENGTH_SHORT).show();
+                    connectHanlder.removeCallbacks(connectRunnable);
+                    progressHanlder.removeCallbacks(progressRunnable);
+                }
+
 
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
 
@@ -254,206 +301,152 @@ public class DeviceSearchActivity extends ActionBarActivity {
 
     }
 
-    public void timeOutMsg(String check){
-        if(check.equals("connect"))
-            Toast.makeText(getApplicationContext(),"연결 Timeout\n다시 시도하세요.",Toast.LENGTH_SHORT).show();
-        else
-            Toast.makeText(getApplicationContext(),"유효성 검사 Timeout\n다시 시도하세요.",Toast.LENGTH_SHORT).show();
-
-    }
-
-
-
-    private Timer showServiceConnectAlert() {
+    private void showServiceConnectAlert() {
 
         mConnectDialog.setTitle("연결 중");
         mConnectDialog.setMessage("연결을 시도합니다.");
         mConnectDialog.setIndeterminate(true);
         mConnectDialog.setCancelable(false);
         mConnectDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-        mConnectDialog.show();
 
-        Timer timer = new Timer();
-        timer.schedule(new TimerTask() {
+        if(mConneckCheck == false) {
+            mConnectDialog.show();
+            mConneckCheck = true;
+        }
+
+        connectHanlder = new Handler();
+
+        connectRunnable = new Runnable() {
             @Override
             public void run() {
-                if(mConnectDialog!=null){
+                if(mConnectDialog!=null && mConneckCheck == true){
                     mConnectDialog.dismiss();
-                }
+                    mConneckCheck = false;
+                    Toast.makeText(getApplicationContext(),"Connect Timeout\n다시 시도해주세요.",Toast.LENGTH_SHORT).show();
 
+                }
             }
-        }, SERVICE_DISCOVERY_TIMEOUT);
-        return timer;
+        };
+
+
+        connectHanlder.postDelayed(connectRunnable, SERVICE_DISCOVERY_TIMEOUT);
+
+
     }
 
 
 
-    private Timer showServiceDiscoveryAlert() {
+    private void showServiceDiscoveryAlert() {
 
         mProgressDialog.setTitle("유효성 검사");
         mProgressDialog.setMessage("해당 잠금장치에 대한 유효성 검사를 시작합니다.");
         mProgressDialog.setIndeterminate(true);
         mProgressDialog.setCancelable(false);
         mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-        mProgressDialog.show();
 
-        Timer timer = new Timer();
-        timer.schedule(new TimerTask() {
+        if(mProgressCheck == false){
+            mProgressDialog.show();
+            mProgressCheck = true;
+        }
+
+
+        progressHanlder = new Handler();
+
+        progressRunnable = new Runnable() {
             @Override
             public void run() {
-                if(mProgressDialog!=null){
+                if(mConnectDialog!=null && mConneckCheck == true){
                     mProgressDialog.dismiss();
+                    mProgressCheck = false;
+                    Toast.makeText(getApplicationContext(),"validity Timeout\n다시 시도해주세요.",Toast.LENGTH_SHORT).show();
                 }
-
             }
-        }, SERVICE_DISCOVERY_TIMEOUT);
-        return timer;
-    }
+        };
 
 
-
-    public void BLECheckAndDialog(){
-
-
-        if(mGattCharacteristics == null){
-            Toast.makeText(getApplicationContext(),"잠금장치 BLE 장치가 아닙니다.",Toast.LENGTH_SHORT).show();
-        }
-        else{
-
-            /**
-             * 어떤 서비스가 있느지 체크..
-             */
-
-            for(int i=0;i<mGattCharacteristics.size();i++){
-                for(int j=0;j<mGattCharacteristics.get(i).size();j++)
-                    Log.i("myTag", "GATT : "+String.valueOf(mGattCharacteristics.get(i).get(j).getUuid()));
-
-                Log.i("myTag","  ");
-            }
-
-
-
-            ItemData getItem = ApplicationController.getInstance().mDbOpenHelper.DbFindMoudle(mDeviceAddress);
-
-            if(getItem.identNum == null){
-                AlertDialog.Builder builder = new AlertDialog.Builder(DeviceSearchActivity.this);     // 여기서 this는 Activity의 this
-
-                // 여기서 부터는 알림창의 속성 설정
-                builder.setTitle("등록되지 않은 장치입니다.")        // 메세지 설정
-                        .setMessage("등록하시겠습니까?")
-                        .setCancelable(true)        // 뒤로 버튼 클릭시 취소 가능 설정
-                        .setPositiveButton("확인", new DialogInterface.OnClickListener(){
-                            // 확인 버튼 클릭시 설정
-                            public void onClick(DialogInterface dialog, int whichButton){
-
-                                ApplicationController.getInstance().mDeviceName = mDeviceName;
-                                ApplicationController.getInstance().mDeviceAddress = mDeviceAddress;
-
-
-//                                ApplicationController.editor.putString("mDeviceAddress", mDeviceAddress);
-//                                ApplicationController.editor.putString("mDeviceName", mDeviceName);
-                                ApplicationController.editor.putBoolean("Connect_check", true);
-                                ApplicationController.editor.commit();
-
-                                Intent intent = new Intent(getApplicationContext(), RegisterActivity.class);
-                                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                                startActivity(intent);
-                                finish();
-                            }
-                        })
-                        .setNegativeButton("취소", new DialogInterface.OnClickListener(){
-                            // 취소 버튼 클릭시 설정
-                            public void onClick(DialogInterface dialog, int whichButton){
-                                dialog.cancel();
-                            }
-                        });
-
-                AlertDialog dialog = builder.create();    // 알림창 객체 생성
-                dialog.show();    // 알림창 띄우기
-            }
-            else{
-                AlertDialog.Builder builder = new AlertDialog.Builder(DeviceSearchActivity.this);     // 여기서 this는 Activity의 this
-
-                // 여기서 부터는 알림창의 속성 설정
-                builder.setTitle("등록된 장치입니다.")        // 메세지 설정
-                        .setMessage("연결하시겠습니까?")
-                        .setCancelable(true)        // 뒤로 버튼 클릭시 취소 가능 설정
-                        .setPositiveButton("확인", new DialogInterface.OnClickListener(){
-                            // 확인 버튼 클릭시 설정
-                            public void onClick(DialogInterface dialog, int whichButton){
-
-                                ApplicationController.getInstance().mDeviceName = mDeviceName;
-                                ApplicationController.getInstance().mDeviceAddress = mDeviceAddress;
-
-
-//                                ApplicationController.editor.putString("mDeviceAddress", mDeviceAddress);
-//                                ApplicationController.editor.putString("mDeviceName", mDeviceName);
-                                ApplicationController.editor.putBoolean("Connect_check", true);
-                                ApplicationController.editor.commit();
-
-
-                                /**
-                                 * 여기서 연결된 ble에 해당하는 부분에 대해서
-                                 * GATT Service를 찾고 우리가 사용하는 서비스로 연결해야함
-                                 */
-
-//                                final Intent intent = new Intent(getApplicationContext(), DeviceControlActivity.class);
-//                                intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_NAME, mDeviceName);
-//                                intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_ADDRESS, mDeviceAddress);
-//                                if (mScanning) {
-//                                    mBluetoothAdapter.stopLeScan(mLeScanCallback);
-//                                    mScanning = false;
-//                                }
-//                                startActivity(intent);
-//
-//                                Log.i("myTag", "---- GATT ----");
-////
-//                                BluetoothGattCharacteristic characteristic = mGattCharacteristics.get(0).get(0);
-//
-////                                ApplicationController.getInstance().GATTConnect(characteristic);
-//
-//
-//                                final int charaProp = characteristic.getProperties();
-//
-//                                if ((charaProp | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
-//                                    // If there is an active notification on a characteristic, clear
-//                                    // it first so it doesn't update the data field on the user interface.
-//                                    Log.i("myTag", "---- GATT 1----");
-//                                    if (mNotifyCharacteristic != null) {
-//                                        ApplicationController.getInstance().mBluetoothLeService.setCharacteristicNotification(mNotifyCharacteristic, false);
-//                                        mNotifyCharacteristic = null;
-//                                    }
-//                                    ApplicationController.getInstance().mBluetoothLeService.readCharacteristic(characteristic);
-//                                }
-//
-//                                if ((charaProp | BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
-//                                    Log.i("myTag", "---- GATT 2----");
-//                                    mNotifyCharacteristic = characteristic;
-//                                    ApplicationController.getInstance().mBluetoothLeService.setCharacteristicNotification(characteristic, true);
-//                                }
-////
-//
-
-
-                                moveMainPage();
-
-                            }
-                        })
-                        .setNegativeButton("취소", new DialogInterface.OnClickListener(){
-                            // 취소 버튼 클릭시 설정
-                            public void onClick(DialogInterface dialog, int whichButton){
-                                dialog.cancel();
-                            }
-                        });
-
-                AlertDialog dialog = builder.create();    // 알림창 객체 생성
-                dialog.show();    // 알림창 띄우기
-            }
-        }
+        progressHanlder.postDelayed(progressRunnable, SERVICE_DISCOVERY_TIMEOUT);
 
 
     }
 
+    public void alreadyRegisterBLE(){
+        AlertDialog.Builder builder = new AlertDialog.Builder(DeviceSearchActivity.this);     // 여기서 this는 Activity의 this
+
+        // 여기서 부터는 알림창의 속성 설정
+        builder.setTitle("등록된 장치입니다.")        // 메세지 설정
+                .setMessage("연결하시겠습니까?")
+                .setCancelable(true)        // 뒤로 버튼 클릭시 취소 가능 설정
+                .setPositiveButton("확인", new DialogInterface.OnClickListener(){
+                    // 확인 버튼 클릭시 설정
+                    public void onClick(DialogInterface dialog, int whichButton){
+
+                        ApplicationController.getInstance().mDeviceName = mDeviceName;
+                        ApplicationController.getInstance().mDeviceAddress = mDeviceAddress;
+                        ApplicationController.editor.putBoolean("Connect_check", true);
+                        ApplicationController.editor.commit();
+
+
+                        moveMainPage();
+
+                    }
+                })
+                .setNegativeButton("취소", new DialogInterface.OnClickListener(){
+                    // 취소 버튼 클릭시 설정
+                    public void onClick(DialogInterface dialog, int whichButton){
+                        dialog.cancel();
+                        mDialogCheck = false;
+                    }
+                });
+
+        AlertDialog dialog = builder.create();    // 알림창 객체 생성
+
+        if(mDialogCheck == false){
+            dialog.show();    // 알림창 띄우기
+            mDialogCheck = true;
+        }
+    }
+
+
+    public void notYetRegisterBLE(){
+        AlertDialog.Builder builder = new AlertDialog.Builder(DeviceSearchActivity.this);     // 여기서 this는 Activity의 this
+
+        // 여기서 부터는 알림창의 속성 설정
+        builder.setTitle("등록되지 않은 장치입니다.")        // 메세지 설정
+                .setMessage("등록하시겠습니까?")
+                .setCancelable(true)        // 뒤로 버튼 클릭시 취소 가능 설정
+                .setPositiveButton("확인", new DialogInterface.OnClickListener(){
+                    // 확인 버튼 클릭시 설정
+                    public void onClick(DialogInterface dialog, int whichButton){
+
+                        ApplicationController.getInstance().mDeviceName = mDeviceName;
+                        ApplicationController.getInstance().mDeviceAddress = mDeviceAddress;
+
+
+//                                ApplicationController.editor.putString("mDeviceAddress", mDeviceAddress);
+//                                ApplicationController.editor.putString("mDeviceName", mDeviceName);
+                        ApplicationController.editor.putBoolean("Connect_check", true);
+                        ApplicationController.editor.commit();
+
+                        Intent intent = new Intent(getApplicationContext(), RegisterActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        startActivity(intent);
+                        finish();
+                    }
+                })
+                .setNegativeButton("취소", new DialogInterface.OnClickListener(){
+                    // 취소 버튼 클릭시 설정
+                    public void onClick(DialogInterface dialog, int whichButton){
+                        dialog.cancel();
+                        mDialogCheck = false;
+                    }
+                });
+
+        AlertDialog dialog = builder.create();    // 알림창 객체 생성
+        if(mDialogCheck == false){
+            dialog.show();    // 알림창 띄우기
+            mDialogCheck = true;
+        }
+    }
 
     public void moveMainPage(){
 //        Intent intent = getIntent();
@@ -514,22 +507,6 @@ public class DeviceSearchActivity extends ActionBarActivity {
                 gattCharacteristicData.add(gattCharacteristicGroupData);
             }
         }
-
-//        SimpleExpandableListAdapter gattServiceAdapter = new SimpleExpandableListAdapter(
-//                this,
-//                gattServiceData,
-//                android.R.layout.simple_expandable_list_item_2,
-//                new String[] {LIST_NAME, LIST_UUID},
-//                new int[] { android.R.id.text1, android.R.id.text2 },
-//                gattCharacteristicData,
-//                android.R.layout.simple_expandable_list_item_2,
-//                new String[] {LIST_NAME, LIST_UUID},
-//                new int[] { android.R.id.text1, android.R.id.text2 }
-//        );
-
-        /**
-         * 어댑터 클릭 이벤트 찾아야함
-         */
 
 
     }
@@ -627,9 +604,9 @@ public class DeviceSearchActivity extends ActionBarActivity {
                 ApplicationController.getInstance().mDeviceAddress =  mDeviceAddress;
                 ApplicationController.getInstance().mDeviceName = mDeviceName;
 
-                ApplicationController.editor.putString("mDeviceAddress", mDeviceAddress);
-                ApplicationController.editor.putString("mDeviceName", mDeviceName);
-                ApplicationController.editor.commit();
+//                ApplicationController.editor.putString("mDeviceAddress", mDeviceAddress);
+//                ApplicationController.editor.putString("mDeviceName", mDeviceName);
+//                ApplicationController.editor.commit();
 
                 Intent gattServiceIntent = new Intent(getApplicationContext(), BluetoothLeService.class);
                 bindService(gattServiceIntent, ApplicationController.getInstance().mServiceConnection, BIND_AUTO_CREATE);
