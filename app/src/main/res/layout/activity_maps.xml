@@ -6,10 +6,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical">
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:gravity="center"
         android:background="#FAFAFA">
 
         <TextView
@@ -17,10 +16,20 @@
             android:layout_height="wrap_content"
             android:text="위치보기"
             android:textSize="14sp"
+            android:layout_centerInParent="true"
             app:font="Bold"
             android:textColor="#3F51B5"/>
 
-    </LinearLayout>
+        <ImageView
+            android:id="@+id/resetBtn"
+            android:layout_marginRight="10dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:src="@drawable/reset"/>
+
+    </RelativeLayout>
 
     <View
         android:layout_width="match_parent"

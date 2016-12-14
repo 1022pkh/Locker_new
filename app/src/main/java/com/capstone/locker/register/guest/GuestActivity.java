@@ -1,8 +1,16 @@
 package com.capstone.locker.register.guest;
 
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattService;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -11,6 +19,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.capstone.locker.Buletooth.presenter.BluetoothLeService;
+import com.capstone.locker.Buletooth.util.GattAttributes;
 import com.capstone.locker.R;
 import com.capstone.locker.application.ApplicationController;
 import com.capstone.locker.database.DbOpenHelper;
@@ -18,7 +28,9 @@ import com.capstone.locker.database.ItemData;
 import com.tsengvn.typekit.TypekitContextWrapper;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -46,6 +58,114 @@ public class GuestActivity extends AppCompatActivity {
 
     Boolean authCheck = false;
     int chooseIcon = 1;  // 1,2,3
+
+
+    private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
+            new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
+
+    private BluetoothGattCharacteristic mNotifyCharacteristic;
+    private static BluetoothGattService mCurrentservice;
+    private static BluetoothGattCharacteristic mWriteCharacteristic;
+
+    private final String LIST_NAME = "NAME";
+    private final String LIST_UUID = "UUID";
+    private boolean mConnected = false;
+
+    private BluetoothLeService mBluetoothLeService;
+
+    private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final String action = intent.getAction();
+            if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
+                mConnected = true;
+                Log.i("myTag","연결성공");
+                invalidateOptionsMenu();
+
+            } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
+                mConnected = false;
+                invalidateOptionsMenu();
+
+
+                ApplicationController.editor.putBoolean("Connect_check", false);
+                ApplicationController.editor.commit();
+
+                Toast.makeText(getApplicationContext(),"연결이 끊겼습니다.\n다시 연결 후 시도해주세요.",Toast.LENGTH_SHORT).show();
+                finish();
+
+
+            } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
+                // Show all the supported services and characteristics on the user interface.
+                Log.i("myTag", "BroadcastReceiver GATT 서비스 발견");
+
+            }else if (BluetoothLeService.EXTRA_DATA.equals(action)) {
+
+                /**
+                 * 데이터가 왔을 경우
+                 */
+                String result = intent.getStringExtra(BluetoothLeService.EXTRA_DATA);
+                Log.i("myTag", ">>>>get1 : " + result);
+
+                if(result.equals("100")){
+
+                    //성공 시
+                    authCheck = true;
+                    requestAuth.setText("인증성공");
+                }
+                else{
+
+                    //성공 시
+                    authCheck = false;
+                    requestAuth.setText("인증실패");
+                }
+
+//                displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+
+            }else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
+                String result = intent.getStringExtra(BluetoothLeService.EXTRA_DATA);
+                Log.i("myTag", ">>>>get2 : " + result);
+                if(result.equals("100")){
+
+                    //성공 시
+                    authCheck = true;
+                    requestAuth.setText("인증성공");
+                }
+                else{
+
+                    //성공 시
+                    authCheck = false;
+                    requestAuth.setText("인증실패");
+                }
+            }
+
+        }
+    };
+
+    // Code to manage Service lifecycle.
+    private final ServiceConnection mServiceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder service) {
+            mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
+
+            Log.i("myTag", "onServiceConnected");
+
+            if (!mBluetoothLeService.initialize()) {
+                Log.i("myTag", "Unable to initialize Bluetooth");
+                finish();
+            }
+            // Automatically connects to the device upon successful start-up initialization.
+//            mBluetoothLeService.connect(ApplicationController.getInstance().mDeviceAddress);
+
+
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            mBluetoothLeService = null;
+        }
+    };
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,6 +196,45 @@ public class GuestActivity extends AppCompatActivity {
         String strNow = sdfNow.format(date);
 
         register_date.setText(strNow);
+
+
+        /**
+         * BLE 서비스를 등록
+         */
+        Intent gattServiceIntent = new Intent(getApplicationContext(), BluetoothLeService.class);
+        bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+        registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
+
+
+        getGattData();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.i("myTag_","read 활성화");
+        BluetoothLeService.writeCharacteristicRGB(mWriteCharacteristic, 0, 0, 0, 30);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        try{
+            unregisterReceiver(mGattUpdateReceiver);
+        }catch(IllegalArgumentException e){
+
+        }
+        unbindService(mServiceConnection);
+    }
+
+    private static IntentFilter makeGattUpdateIntentFilter() {
+        final IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
+        intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
+        intentFilter.addAction(BluetoothLeService.EXTRA_DATA);
+        return intentFilter;
     }
 
     @Override
@@ -86,13 +245,30 @@ public class GuestActivity extends AppCompatActivity {
     @OnClick(R.id.requestAuth)
     public void requestAuth(){
         // TODO: 2016. 10. 5. 블루투스로 부터 인증
-        if(editGuestPwd.length() == 0)
-            Toast.makeText(getApplicationContext(),"패스워드를 입력해주세요.",Toast.LENGTH_SHORT).show();
-        else{
-            //성공 시
-            authCheck = true;
-            requestAuth.setText("인증성공");
+
+        if(authCheck == false){
+            if(editGuestPwd.length() == 0)
+                Toast.makeText(getApplicationContext(),"패스워드를 입력해주세요.",Toast.LENGTH_SHORT).show();
+            else{
+                //성공 시
+                String temp = editGuestPwd.getText().toString();
+
+                int mRed = Integer.valueOf(temp)/100;  // pwd 앞 2자리
+                int mGreen = Integer.valueOf(temp)%100;  // pwd 뒷 2자리
+                int mBlue = 20;  // 10:owner, 20:guest
+                int mIntensity = 50;  // 명령 종류  10:해제 , 20: 잠금, 30:read 활성화, 40:read 비활성화 , 50: 인증
+
+                try {
+                    Log.i("myTag_","Auth Request");
+                    BluetoothLeService.writeCharacteristicRGB(mWriteCharacteristic, mRed, mGreen, mBlue, mIntensity);
+
+                } catch (Exception e) {
+
+                }
+
+            }
         }
+
     }
 
     @OnClick(R.id.icon1)
@@ -180,5 +356,29 @@ public class GuestActivity extends AppCompatActivity {
 
         AlertDialog dialog = builder.create();    // 알림창 객체 생성
         dialog.show();    // 알림창 띄우기
+    }
+
+    /**
+     * Method to get required characteristics from service
+     */
+    void getGattData() {
+        mCurrentservice = ApplicationController.getInstance().current_characteristic;
+
+        List<BluetoothGattCharacteristic> gattCharacteristics = mCurrentservice.getCharacteristics();
+
+        for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
+            String uuidchara = gattCharacteristic.getUuid().toString();
+            Log.i("myTag_",uuidchara);
+
+            //0003cbbb-0000-1000-8000-00805f9b0131
+
+//            RGB_LED = "0000cbb1-0000-1000-8000-00805f9b34fb";
+//            RGB_LED_CUSTOM = "0003cbb1-0000-1000-8000-00805f9b0131"; << 여기에 해당함.
+            if (uuidchara.equalsIgnoreCase(GattAttributes.RGB_LED) || uuidchara.equalsIgnoreCase(GattAttributes.RGB_LED_CUSTOM)) {
+                mWriteCharacteristic = gattCharacteristic;
+                break;
+            }
+        }
+
     }
 }

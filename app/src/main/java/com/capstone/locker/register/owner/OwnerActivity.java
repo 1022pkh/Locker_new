@@ -22,7 +22,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.capstone.locker.Buletooth.presenter.BluetoothLeService;
-import com.capstone.locker.Buletooth.presenter.SampleGattAttributes;
+import com.capstone.locker.Buletooth.util.GattAttributes;
 import com.capstone.locker.R;
 import com.capstone.locker.application.ApplicationController;
 import com.capstone.locker.database.DbOpenHelper;
@@ -32,7 +32,6 @@ import com.tsengvn.typekit.TypekitContextWrapper;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 
 import butterknife.BindView;
@@ -75,6 +74,8 @@ public class OwnerActivity extends AppCompatActivity {
             new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
 
     private BluetoothGattCharacteristic mNotifyCharacteristic;
+    private static BluetoothGattService mCurrentservice;
+    private static BluetoothGattCharacteristic mWriteCharacteristic;
 
     private final String LIST_NAME = "NAME";
     private final String LIST_UUID = "UUID";
@@ -94,38 +95,58 @@ public class OwnerActivity extends AppCompatActivity {
             } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
                 mConnected = false;
                 invalidateOptionsMenu();
+
+
+                ApplicationController.editor.putBoolean("Connect_check", false);
+                ApplicationController.editor.commit();
+
+                Toast.makeText(getApplicationContext(),"연결이 끊겼습니다.\n다시 연결 후 시도해주세요.",Toast.LENGTH_SHORT).show();
+                finish();
+
+
             } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
                 // Show all the supported services and characteristics on the user interface.
-                displayGattServices(mBluetoothLeService.getSupportedGattServices());
+                Log.i("myTag", "BroadcastReceiver GATT 서비스 발견");
 
-                BluetoothGattCharacteristic characteristic = mGattCharacteristics.get(0).get(0);
+            }else if (BluetoothLeService.EXTRA_DATA.equals(action)) {
 
-//                                ApplicationController.getInstance().GATTConnect(characteristic);
+                /**
+                 * 데이터가 왔을 경우
+                 */
+                String result = intent.getStringExtra(BluetoothLeService.EXTRA_DATA);
+                Log.i("myTag", ">>>>get1 : " + result);
 
+                if(result.equals("100")){
 
-                final int charaProp = characteristic.getProperties();
+                    //성공 시
+                    authCheck = true;
+                    requestAuth.setText("인증성공");
+                }
+                else{
 
-                if ((charaProp | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
-                    // If there is an active notification on a characteristic, clear
-                    // it first so it doesn't update the data field on the user interface.
-                    Log.i("myTag", "---- GATT 1----");
-                    if (mNotifyCharacteristic != null) {
-                        ApplicationController.getInstance().mBluetoothLeService.setCharacteristicNotification(mNotifyCharacteristic, false);
-                        mNotifyCharacteristic = null;
-                    }
-                    ApplicationController.getInstance().mBluetoothLeService.readCharacteristic(characteristic);
+                    //성공 시
+                    authCheck = false;
+                    requestAuth.setText("인증실패");
                 }
 
-                if ((charaProp | BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
-                    Log.i("myTag", "---- GATT 2----");
-                    mNotifyCharacteristic = characteristic;
-                    ApplicationController.getInstance().mBluetoothLeService.setCharacteristicNotification(characteristic, true);
-                }
-////
+//                displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
 
-            } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
+            }else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
+                String result = intent.getStringExtra(BluetoothLeService.EXTRA_DATA);
+                Log.i("myTag", ">>>>get2 : " + result);
+                if(result.equals("100")){
+
+                    //성공 시
+                    authCheck = true;
+                    requestAuth.setText("인증성공");
+                }
+                else{
+
+                    //성공 시
+                    authCheck = false;
+                    requestAuth.setText("인증실패");
+                }
             }
-
 
         }
     };
@@ -144,7 +165,8 @@ public class OwnerActivity extends AppCompatActivity {
                 finish();
             }
             // Automatically connects to the device upon successful start-up initialization.
-            mBluetoothLeService.connect(ApplicationController.getInstance().mDeviceAddress);
+//            mBluetoothLeService.connect(ApplicationController.getInstance().mDeviceAddress);
+
 
         }
 
@@ -184,81 +206,31 @@ public class OwnerActivity extends AppCompatActivity {
         register_date.setText(strNow);
 
 
-        Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
-        bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
-
-    }
-
-    private void displayGattServices(List<BluetoothGattService> gattServices) {
-
-        if (gattServices == null) return;
-
-        String uuid = null;
-        String unknownServiceString = getResources().getString(R.string.unknown_service);
-        String unknownCharaString = getResources().getString(R.string.unknown_characteristic);
-        ArrayList<HashMap<String, String>> gattServiceData = new ArrayList<HashMap<String, String>>();
-        ArrayList<ArrayList<HashMap<String, String>>> gattCharacteristicData = new ArrayList<ArrayList<HashMap<String, String>>>();
-
-        mGattCharacteristics = new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
-
-        // Loops through available GATT Services.
-        for (BluetoothGattService gattService : gattServices) {
-            HashMap<String, String> currentServiceData = new HashMap<String, String>();
-            uuid = gattService.getUuid().toString();
-
-            if(uuid.equals( "0003cbbb-0000-1000-8000-00805f9b0131")){
-
-                currentServiceData.put(LIST_NAME, SampleGattAttributes.lookup(uuid, unknownServiceString));
-                currentServiceData.put(LIST_UUID, uuid);
-                gattServiceData.add(currentServiceData);
-
-                ArrayList<HashMap<String, String>> gattCharacteristicGroupData = new ArrayList<HashMap<String, String>>();
-                List<BluetoothGattCharacteristic> gattCharacteristics = gattService.getCharacteristics();
-                ArrayList<BluetoothGattCharacteristic> charas = new ArrayList<BluetoothGattCharacteristic>();
-
-                // Loops through available Characteristics.
-                for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
-                    charas.add(gattCharacteristic);
-                    HashMap<String, String> currentCharaData = new HashMap<String, String>();
-                    uuid = gattCharacteristic.getUuid().toString();
-                    currentCharaData.put(
-                            LIST_NAME, SampleGattAttributes.lookup(uuid, unknownCharaString));
-                    currentCharaData.put(LIST_UUID, uuid);
-                    gattCharacteristicGroupData.add(currentCharaData);
-                }
-                mGattCharacteristics.add(charas);
-                gattCharacteristicData.add(gattCharacteristicGroupData);
-            }
-        }
-
-//        SimpleExpandableListAdapter gattServiceAdapter = new SimpleExpandableListAdapter(
-//                this,
-//                gattServiceData,
-//                android.R.layout.simple_expandable_list_item_2,
-//                new String[] {LIST_NAME, LIST_UUID},
-//                new int[] { android.R.id.text1, android.R.id.text2 },
-//                gattCharacteristicData,
-//                android.R.layout.simple_expandable_list_item_2,
-//                new String[] {LIST_NAME, LIST_UUID},
-//                new int[] { android.R.id.text1, android.R.id.text2 }
-//        );
-
         /**
-         * 어댑터 클릭 이벤트 찾아야함
+         * BLE 서비스를 등록
          */
+        Intent gattServiceIntent = new Intent(getApplicationContext(), BluetoothLeService.class);
+        bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+        registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
 
 
+        getGattData();
     }
+
+
+
     @Override
     protected void onResume() {
         super.onResume();
-        registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
 
+        Log.i("myTag_","read 활성화");
+        BluetoothLeService.writeCharacteristicRGB(mWriteCharacteristic, 0, 0, 0, 30);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        unbindService(mServiceConnection);
         unregisterReceiver(mGattUpdateReceiver);
     }
 
@@ -268,6 +240,8 @@ public class OwnerActivity extends AppCompatActivity {
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
         intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
+        intentFilter.addAction(BluetoothLeService.EXTRA_DATA);
+
         return intentFilter;
     }
 
@@ -279,13 +253,33 @@ public class OwnerActivity extends AppCompatActivity {
     @OnClick(R.id.requestAuth)
     public void requestAuth(){
         // TODO: 2016. 10. 5. 블루투스로 부터 인증
-        if(editOwnerPwd.length() == 0)
-            Toast.makeText(getApplicationContext(),"패스워드를 입력해주세요.",Toast.LENGTH_SHORT).show();
-        else{
-            //성공 시
-            authCheck = true;
-            requestAuth.setText("인증성공");
+
+        Log.i("myTag_","Auth Request");
+
+        if(authCheck == false){
+            if(editOwnerPwd.length() == 0)
+                Toast.makeText(getApplicationContext(),"패스워드를 입력해주세요.",Toast.LENGTH_SHORT).show();
+            else{
+
+                String temp = editOwnerPwd.getText().toString();
+
+                int mRed = Integer.valueOf(temp)/100;  // pwd 앞 2자리
+                int mGreen = Integer.valueOf(temp)%100;  // pwd 뒷 2자리
+                int mBlue = 10;  // 10:owner, 20:guest
+                int mIntensity = 50;  // 명령 종류  10:해제 , 20: 잠금, 30:read 활성화, 40:read 비활성화 , 50: 인증
+
+                try {
+
+                    BluetoothLeService.writeCharacteristicRGB(mWriteCharacteristic, mRed, mGreen, mBlue, mIntensity);
+
+                } catch (Exception e) {
+
+                }
+
+            }
         }
+
+
     }
 
     @OnClick(R.id.icon1)
@@ -391,5 +385,29 @@ public class OwnerActivity extends AppCompatActivity {
         else{
             Toast.makeText(getApplicationContext(),"계정 인증은 필수 사항입니다",Toast.LENGTH_SHORT).show();
         }
+    }
+
+    /**
+     * Method to get required characteristics from service
+     */
+    void getGattData() {
+        mCurrentservice = ApplicationController.getInstance().current_characteristic;
+
+        List<BluetoothGattCharacteristic> gattCharacteristics = mCurrentservice.getCharacteristics();
+
+        for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
+            String uuidchara = gattCharacteristic.getUuid().toString();
+            Log.i("myTag_",uuidchara);
+
+            //0003cbbb-0000-1000-8000-00805f9b0131
+
+//            RGB_LED = "0000cbb1-0000-1000-8000-00805f9b34fb";
+//            RGB_LED_CUSTOM = "0003cbb1-0000-1000-8000-00805f9b0131"; << 여기에 해당함.
+            if (uuidchara.equalsIgnoreCase(GattAttributes.RGB_LED) || uuidchara.equalsIgnoreCase(GattAttributes.RGB_LED_CUSTOM)) {
+                mWriteCharacteristic = gattCharacteristic;
+                break;
+            }
+        }
+
     }
 }

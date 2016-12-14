@@ -53,6 +53,8 @@ public class DetailActivity extends AppCompatActivity {
 
         ItemData getItem = mDbOpenHelper.DbDetail(moduleId);
 
+
+
         textviewNickname.setText(getItem.nickName);
         textviewModuleName.setText(getItem.identName);
         textviewQualification.setText(getItem.qualificaion);
@@ -63,11 +65,11 @@ public class DetailActivity extends AppCompatActivity {
         Log.i("MyTag", String.valueOf(getItem.icon));
 
         if(getItem.icon == 1)
-            profileImg.setImageResource(R.drawable.ic_owner);
+            profileImg.setImageResource(R.drawable.owner);
         else if(getItem.icon == 2)
-            profileImg.setImageResource(R.drawable.ic_lock);
+            profileImg.setImageResource(R.drawable.lock);
         else
-            profileImg.setImageResource(R.drawable.ic_cycle);
+            profileImg.setImageResource(R.drawable.cycle);
 
 
     }

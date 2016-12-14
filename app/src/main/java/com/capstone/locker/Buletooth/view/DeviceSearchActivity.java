@@ -8,16 +8,19 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
@@ -64,13 +67,15 @@ public class DeviceSearchActivity extends ActionBarActivity {
 
 
 
-    private String mDeviceName;
-    private String mDeviceAddress;
-    private final static String TAG = DeviceSearchActivity.class.getSimpleName();
-    //    private BluetoothLeService mBluetoothLeService;
-    private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
-            new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
+    private String mDeviceName = "";
+    private String mDeviceAddress = "";
+
+    private BluetoothLeService mBluetoothLeService;
+    private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics
+            = new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
+
     private boolean mConnected = false;
+
     private BluetoothGattCharacteristic mNotifyCharacteristic;
 
     private final String LIST_NAME = "NAME";
@@ -95,6 +100,29 @@ public class DeviceSearchActivity extends ActionBarActivity {
     Boolean mConneckCheck = false;
     Boolean mDialogCheck = false;
 
+
+
+    public final ServiceConnection mServiceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder service) {
+            mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
+            if (!mBluetoothLeService.initialize()) {
+//                Log.e(TAG, "Unable to initialize Bluetooth");
+//                finish();
+            }
+            // Automatically connects to the device upon successful start-up initialization.
+//            mBluetoothLeService.connect(mDeviceAddress);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            mBluetoothLeService = null;
+            Log.i("myTag","application onServiceDisconnected");
+        }
+    };
+
+
     // Handles various events fired by the Service.
     // ACTION_GATT_CONNECTED: connected to a GATT server.
     // ACTION_GATT_DISCONNECTED: disconnected from a GATT server.
@@ -108,7 +136,7 @@ public class DeviceSearchActivity extends ActionBarActivity {
             if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
                 mConnected = true;
 
-                Log.i("myTag","BroadcastReceiver 연결성공");
+                Log.i("myTag","BroadcastReceiver 연결성공" + mDeviceAddress);
 
                 invalidateOptionsMenu();
 
@@ -162,23 +190,19 @@ public class DeviceSearchActivity extends ActionBarActivity {
 
 
                 mConnected = false;
-//                updateConnectionState(R.string.disconnected);
                 ApplicationController.getInstance().mDeviceAddress = "";
                 ApplicationController.getInstance().mDeviceName = "";
-
-//                ApplicationController.editor.putString("mDeviceAddress", "");
-//                ApplicationController.editor.putString("mDeviceName", "");
                 ApplicationController.editor.putBoolean("Connect_check", false);
                 ApplicationController.editor.commit();
 
                 invalidateOptionsMenu();
-//                clearUI();
+
             } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
 
                 Log.i("myTag","BroadcastReceiver GATT 서비스 발견");
 
                 // Show all the supported services and characteristics on the user interface.
-                displayGattServices(ApplicationController.getInstance().mBluetoothLeService.getSupportedGattServices());
+                displayGattServices(mBluetoothLeService.getSupportedGattServices());
 
                 if(mConnectDialog!=null && mConneckCheck == true ){
                     mConnectDialog.dismiss();
@@ -196,8 +220,33 @@ public class DeviceSearchActivity extends ActionBarActivity {
                  * 우리 어플리케이션을 이용할 수 있는 GATT 서비스가 있는 지 체크
                  */
                 //있을 경우
+
                 if (mGattCharacteristics.size() > 0){
                     ItemData getItem = ApplicationController.getInstance().mDbOpenHelper.DbFindMoudle(mDeviceAddress);
+//
+//                    BluetoothGattCharacteristic characteristic = mGattCharacteristics.get(0).get(0);
+//
+////                                ApplicationController.getInstance().GATTConnect(characteristic);
+//
+//
+//                    final int charaProp = characteristic.getProperties();
+//
+//                    if ((charaProp | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
+//                        // If there is an active notification on a characteristic, clear
+//                        // it first so it doesn't update the data field on the user interface.
+//                        Log.i("myTag", "---- GATT 1----");
+//                        if (mNotifyCharacteristic != null) {
+//                            mBluetoothLeService.setCharacteristicNotification(mNotifyCharacteristic, false);
+//                            mNotifyCharacteristic = null;
+//                        }
+//                        mBluetoothLeService.readCharacteristic(characteristic);
+//                    }
+//
+//                    if ((charaProp | BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
+//                        Log.i("myTag", "---- GATT 2----");
+//                        mNotifyCharacteristic = characteristic;
+//                        mBluetoothLeService.setCharacteristicNotification(characteristic, true);
+//                    }
 
                     // 등록된 장치
                     if(getItem.identNum != null){
@@ -216,24 +265,6 @@ public class DeviceSearchActivity extends ActionBarActivity {
                 }
 
 
-            } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
-
-//                displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
-            }
-
-
-            if (action.equals(BluetoothDevice.ACTION_BOND_STATE_CHANGED)) {
-                final int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR);
-
-                if (state == BluetoothDevice.BOND_BONDING) {
-                    // Bonding...
-                    Log.i("myTag","BOND_BONDING");
-                } else if (state == BluetoothDevice.BOND_BONDED) {
-                    Log.i("myTag","BOND_BONDED");
-
-                } else if (state == BluetoothDevice.BOND_NONE) {
-                    Log.i("myTag","BOND_NONE");
-                }
             }
 
         }
@@ -264,6 +295,11 @@ public class DeviceSearchActivity extends ActionBarActivity {
 
         getSupportActionBar().setCustomView(mCustomView);
         getSupportActionBar().setDisplayShowCustomEnabled(true);
+
+
+
+
+
 
 
         /**
@@ -394,6 +430,9 @@ public class DeviceSearchActivity extends ActionBarActivity {
                     // 취소 버튼 클릭시 설정
                     public void onClick(DialogInterface dialog, int whichButton){
                         dialog.cancel();
+
+                        ApplicationController.getInstance().unBindBLEService();
+
                         mDialogCheck = false;
                     }
                 });
@@ -418,12 +457,15 @@ public class DeviceSearchActivity extends ActionBarActivity {
                     // 확인 버튼 클릭시 설정
                     public void onClick(DialogInterface dialog, int whichButton){
 
+
+                        if(mDeviceAddress == ""){
+                            mDeviceName = ApplicationController.getInstance().mDeviceName;
+                            mDeviceAddress = ApplicationController.getInstance().mDeviceAddress;
+                        }
+
                         ApplicationController.getInstance().mDeviceName = mDeviceName;
                         ApplicationController.getInstance().mDeviceAddress = mDeviceAddress;
 
-
-//                                ApplicationController.editor.putString("mDeviceAddress", mDeviceAddress);
-//                                ApplicationController.editor.putString("mDeviceName", mDeviceName);
                         ApplicationController.editor.putBoolean("Connect_check", true);
                         ApplicationController.editor.commit();
 
@@ -551,6 +593,11 @@ public class DeviceSearchActivity extends ActionBarActivity {
     protected void onResume() {
         super.onResume();
 
+        /**
+         * BLE 서비스를 등록
+         */
+        Intent gattServiceIntent = new Intent(getApplicationContext(), BluetoothLeService.class);
+        bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
         registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
 
         // Ensures Bluetooth is enabled on the device.  If Bluetooth is not currently enabled,
@@ -575,28 +622,13 @@ public class DeviceSearchActivity extends ActionBarActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
+                scanLeDevice(false);
                 showServiceConnectAlert();
 
                 final BluetoothDevice device = mLeDeviceListAdapter.getDevice(position);
 
                 if (device == null)
                     return;
-//                final Intent intent = new Intent(getApplicationContext(), DeviceControlActivity.class);
-//
-//                Log.i("myTag",String.valueOf(device.getName()));
-//                Log.i("myTag",String.valueOf(device.getAddress()));
-//
-//                intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_NAME, device.getName());
-//                intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_ADDRESS, device.getAddress());
-//
-//                if (mScanning) {
-//                    mBluetoothAdapter.stopLeScan(mLeScanCallback);
-//                    mScanning = false;
-//                }
-                /**
-                 *
-                 */
-                //startActivity(intent);
 
                 mDeviceName = device.getName();
                 mDeviceAddress = device.getAddress();
@@ -604,17 +636,13 @@ public class DeviceSearchActivity extends ActionBarActivity {
                 ApplicationController.getInstance().mDeviceAddress =  mDeviceAddress;
                 ApplicationController.getInstance().mDeviceName = mDeviceName;
 
-//                ApplicationController.editor.putString("mDeviceAddress", mDeviceAddress);
-//                ApplicationController.editor.putString("mDeviceName", mDeviceName);
-//                ApplicationController.editor.commit();
-
                 Intent gattServiceIntent = new Intent(getApplicationContext(), BluetoothLeService.class);
                 bindService(gattServiceIntent, ApplicationController.getInstance().mServiceConnection, BIND_AUTO_CREATE);
 
 
 
-                if (ApplicationController.getInstance().mBluetoothLeService != null) {
-                    final boolean result = ApplicationController.getInstance().mBluetoothLeService.connect(mDeviceAddress);
+                if (mBluetoothLeService != null) {
+                    final boolean result = mBluetoothLeService.connect(mDeviceAddress);
                     Log.i("myTag", "Connect request result=" + result);
                 }
 
@@ -626,10 +654,6 @@ public class DeviceSearchActivity extends ActionBarActivity {
 
     private static IntentFilter makeGattUpdateIntentFilter() {
         final IntentFilter intentFilter = new IntentFilter();
-//        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
-//        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
-//        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
-//        intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
 
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTING);
@@ -669,6 +693,7 @@ public class DeviceSearchActivity extends ActionBarActivity {
         super.onPause();
         scanLeDevice(false);
         mLeDeviceListAdapter.clear();
+        unbindService(mServiceConnection);
         unregisterReceiver(mGattUpdateReceiver);
     }
 
@@ -700,11 +725,12 @@ public class DeviceSearchActivity extends ActionBarActivity {
             new BluetoothAdapter.LeScanCallback() {
 
                 @Override
-                public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
+                public void onLeScan(final BluetoothDevice device, final int rssi, byte[] scanRecord) {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-//                            Log.i("myTag","uuid : " + device.getUuids().toString());
+
+//                            Log.i("myTag","RSSI : " + String.valueOf(rssi));
 
                             mLeDeviceListAdapter.addDevice(device);
                             mLeDeviceListAdapter.notifyDataSetChanged();

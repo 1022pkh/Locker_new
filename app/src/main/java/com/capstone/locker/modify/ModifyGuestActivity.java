@@ -1,22 +1,29 @@
 package com.capstone.locker.modify;
 
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattService;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.capstone.locker.Buletooth.presenter.BluetoothLeService;
+import com.capstone.locker.Buletooth.util.GattAttributes;
 import com.capstone.locker.R;
 import com.capstone.locker.application.ApplicationController;
 import com.capstone.locker.database.DbOpenHelper;
 import com.capstone.locker.database.ItemData;
 import com.capstone.locker.main.view.MainActivity;
 import com.tsengvn.typekit.TypekitContextWrapper;
+
+import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -43,6 +50,9 @@ public class ModifyGuestActivity extends AppCompatActivity {
     String moduleId;
     int chooseIcon = 1;  // 1,2,3
     int choosePushCheck = 0; // 0 : on , 1 : off
+
+    private static BluetoothGattService mCurrentservice;
+    private static BluetoothGattCharacteristic mWriteCharacteristic;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,8 +99,19 @@ public class ModifyGuestActivity extends AppCompatActivity {
             icon3.setBackgroundResource(R.drawable.border_circle_background_empty);
         }
 
-    }
+        getGattData();
 
+    }
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if(mWriteCharacteristic != null){
+
+            Log.i("myTag_","read 활성화");
+            BluetoothLeService.writeCharacteristicRGB(mWriteCharacteristic, 0, 0, 0, 30);
+        }
+    }
     @Override
     protected void attachBaseContext(Context newBase) {
         super.attachBaseContext(TypekitContextWrapper.wrap(newBase));
@@ -183,6 +204,35 @@ public class ModifyGuestActivity extends AppCompatActivity {
 
         AlertDialog dialog = builder.create();    // 알림창 객체 생성
         dialog.show();    // 알림창 띄우기
+    }
+
+    /**
+     * Method to get required characteristics from service
+     */
+    void getGattData() {
+        mCurrentservice = ApplicationController.getInstance().current_characteristic;
+
+        if(mCurrentservice != null){
+            List<BluetoothGattCharacteristic> gattCharacteristics = mCurrentservice.getCharacteristics();
+
+
+
+            for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
+                String uuidchara = gattCharacteristic.getUuid().toString();
+                Log.i("myTag_",uuidchara);
+
+                //0003cbbb-0000-1000-8000-00805f9b0131
+
+//            RGB_LED = "0000cbb1-0000-1000-8000-00805f9b34fb";
+//            RGB_LED_CUSTOM = "0003cbb1-0000-1000-8000-00805f9b0131"; << 여기에 해당함.
+                if (uuidchara.equalsIgnoreCase(GattAttributes.RGB_LED) || uuidchara.equalsIgnoreCase(GattAttributes.RGB_LED_CUSTOM)) {
+                    mWriteCharacteristic = gattCharacteristic;
+                    break;
+                }
+            }
+        }
+
+
     }
 
 }

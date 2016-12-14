@@ -253,7 +253,8 @@
                     android:hint="비밀번호 입력"
                     android:textColorHint="#C6D2D2"
                     android:background="@drawable/border_circle_background_empty"
-                    android:maxLength="10"/>
+                    android:maxLength="4"
+                    android:inputType="number"/>
 
             </LinearLayout>
 
@@ -304,14 +305,15 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1.5"
-            android:gravity="center_vertical"
-            android:orientation="vertical"
+            android:gravity="center"
+            android:orientation="horizontal"
             android:weightSum="10">
 
             <EditText
                 android:id="@+id/modifyOwnerPwd"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="match_parent"
+                android:layout_weight="7"
                 android:gravity="center"
                 android:paddingLeft="5dp"
                 android:paddingRight="5dp"
@@ -320,7 +322,6 @@
                 android:layout_marginTop="3dp"
                 android:layout_marginBottom="3dp"
                 android:layout_marginLeft="40dp"
-                android:layout_marginRight="40dp"
                 android:textColor="#000000"
                 android:textSize="13sp"
                 android:singleLine="true"
@@ -328,7 +329,32 @@
                 android:textColorHint="#C6D2D2"
                 android:background="@drawable/border_circle_background_empty"
                 android:text=""
-                android:maxLength="10"/>
+                android:inputType="number"
+                android:maxLength="4"/>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="3">
+
+                <TextView
+                    android:id="@+id/requestChangeOwer"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:layout_marginTop="5dp"
+                    android:layout_marginBottom="5dp"
+                    android:background="@drawable/border_circle_background"
+                    android:textColor="#ffffff"
+                    android:textSize="14sp"
+                    android:text="변경"/>
+
+
+            </LinearLayout>
+
+
 
         </LinearLayout>
 
@@ -355,13 +381,14 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1.5"
-            android:gravity="center_vertical"
+            android:gravity="center"
             android:weightSum="10">
 
             <EditText
                 android:id="@+id/modifyGuestPwd"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="match_parent"
+                android:layout_weight="7"
                 android:gravity="center"
                 android:paddingLeft="5dp"
                 android:paddingRight="5dp"
@@ -370,7 +397,6 @@
                 android:layout_marginTop="3dp"
                 android:layout_marginBottom="3dp"
                 android:layout_marginLeft="40dp"
-                android:layout_marginRight="40dp"
                 android:textColor="#000000"
                 android:textSize="13sp"
                 android:singleLine="true"
@@ -378,7 +404,31 @@
                 android:textColorHint="#C6D2D2"
                 android:background="@drawable/border_circle_background_empty"
                 android:text=""
-                android:maxLength="10"/>
+                android:inputType="number"
+                android:maxLength="4"/>
+
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="3">
+
+                <TextView
+                    android:id="@+id/requestChangeGuest"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:layout_marginTop="5dp"
+                    android:layout_marginBottom="5dp"
+                    android:background="@drawable/border_circle_background"
+                    android:textColor="#ffffff"
+                    android:textSize="14sp"
+                    android:text="변경"/>
+
+
+            </LinearLayout>
 
         </LinearLayout>
 

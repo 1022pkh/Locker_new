@@ -1,6 +1,8 @@
 
 package com.capstone.locker.Buletooth.presenter;
 
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -13,12 +15,18 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.IBinder;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import com.capstone.locker.Buletooth.util.GattAttributes;
+import com.capstone.locker.R;
 import com.capstone.locker.application.ApplicationController;
+import com.capstone.locker.database.ItemData;
+import com.capstone.locker.main.view.MainActivity;
 
 import java.util.List;
 import java.util.UUID;
@@ -71,11 +79,18 @@ public class BluetoothLeService extends Service {
     public final static String EXTRA_DATA =
             "com.example.bluetooth.le.EXTRA_DATA";
 
-    public final static UUID UUID_HEART_RATE_MEASUREMENT =
-            UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT);
+    public final static String ORDER_OPEN = "com.capstone.locker.open";
+    public final static String ORDER_CLOSE = "com.capstone.locker.close";
+
 
     public final static UUID UUID_RGB_CHARACTERISTIC_CONFIG =
             UUID.fromString(SampleGattAttributes.RGB_CHARACTERISTIC_CONFIG);
+
+    public final static UUID UUID_CAPSENSE_SERVICE =
+            UUID.fromString(GattAttributes.CAPSENSE_SERVICE);
+    public final static UUID UUID_CAPSENSE_SERVICE_CUSTOM =
+            UUID.fromString(GattAttributes.CAPSENSE_SERVICE_CUSTOM);
+
 
     private String DeviceAddress;
 
@@ -94,21 +109,29 @@ public class BluetoothLeService extends Service {
                 broadcastUpdate(intentAction);
                 Log.i(TAG, "Connected to GATT server.");
                 // Attempts to discover services after successful connection.
-                Log.i(TAG, "Attempting to start service discovery:" +
-                        mBluetoothGatt.discoverServices());
+                Log.i(TAG, "Attempting to start service discovery:" + mBluetoothGatt.discoverServices());
+
+
+//                mBluetoothGatt.readRemoteRssi();
 
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 intentAction = ACTION_GATT_DISCONNECTED;
                 mConnectionState = STATE_DISCONNECTED;
                 Log.i(TAG, "Disconnected from GATT server.");
+                Log.i("myTag", "Disconnected");
                 broadcastUpdate(intentAction);
             }
+
         }
 
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED);
+
+                mBluetoothGatt.readRemoteRssi();
+
+
             } else {
                 Log.w(TAG, "onServicesDiscovered received: " + status);
             }
@@ -126,11 +149,12 @@ public class BluetoothLeService extends Service {
 
             if (status == BluetoothGatt.GATT_SUCCESS) {
 
-
+                Log.i("myTag_", "---Write GATT_SUCCESS");
                 //timeStamp("OTA WRITE RESPONSE TIMESTAMP ");
 
             } else {
 
+                Log.i("myTag_", "onCharacteristicWrite GATT_Error");
 //                Intent intent = new Intent(ACTION_GATT_CHARACTERISTIC_ERROR);
 //                intent.putExtra(Constants.EXTRA_CHARACTERISTIC_ERROR_MESSAGE, "" + status);
 //
@@ -152,13 +176,13 @@ public class BluetoothLeService extends Service {
 
             mBluetoothGatt.readCharacteristic(characteristic);
 
-            System.out.println("In onCharacteristicRead!!!!!!!");
 
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
                 byte[] data = characteristic.getValue();
-                System.out.println("Received Data Success!!!!!!");
-                System.out.println(new String(data));
+
+
+                Log.i("myTag_", "---Read---GATT_SUCCESS");
 
             }
         }
@@ -168,9 +192,51 @@ public class BluetoothLeService extends Service {
                                             BluetoothGattCharacteristic characteristic) {
             broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
 
-            Log.i("myTag","Received Data Success!!!!!!");
+//            Log.i("myTag_", "---onCharacteristicChanged---GATT_SUCCESS");
+
             byte[] data = characteristic.getValue();
         }
+
+        @Override
+        public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status)
+        {
+            if(rssi != 0 ) {
+
+                ItemData item = ApplicationController.getInstance().mDbOpenHelper
+                        .DbFindMoudle(ApplicationController.getInstance().mDeviceAddress);
+
+                Log.i("myTag", "RSSI "+ String.valueOf(rssi));
+
+                if(item.identNum != null){
+
+                    if(rssi >= -52){
+//                        Log.i("myTag", "RSSI : " + String.valueOf(rssi) +" OPEN! ");
+
+                        // 브로드캐스트로 가까이 접근했다는 것을 알려줘야한다.-- open
+                        Intent intent = new Intent(ORDER_OPEN);
+                        sendBroadcast(intent);
+
+                    }
+                    else if(rssi < -70){
+                        if(item.pushcheck == 0)
+                            sendNotification("주인님","잠금장치가 일정 거리에서 멀어졌습니다!");
+
+
+//                        Log.i("myTag", "RSSI : " + String.valueOf(rssi) + " Close! ");
+
+                        // 브로드캐스트로 가까이 접근했다는 것을 알려줘야한다. -- close
+                        Intent intent = new Intent(ORDER_CLOSE);
+                        sendBroadcast(intent);
+                    }
+
+                }
+
+            }
+            mBluetoothGatt.readRemoteRssi();//true
+
+            super.onReadRemoteRssi(gatt, rssi, status);
+        }
+
     };
 
 
@@ -183,8 +249,7 @@ public class BluetoothLeService extends Service {
      * @param blue
      * @param intensity
      */
-    public static void writeCharacteristicRGB(
-            BluetoothGattCharacteristic characteristic, int red, int green, int blue, int intensity) {
+    public static void writeCharacteristicRGB(BluetoothGattCharacteristic characteristic, int red, int green, int blue, int intensity) {
         String serviceUUID = characteristic.getService().getUuid().toString();
         String serviceName = GattAttributes.lookupUUID(characteristic.getService().getUuid(), serviceUUID);
 
@@ -213,6 +278,10 @@ public class BluetoothLeService extends Service {
 
     private void broadcastUpdate(final String action,
                                  final BluetoothGattCharacteristic characteristic) {
+
+
+        Log.i("myTag_", action);
+
         final Intent intent = new Intent(action);
 
         // This is special handling for the Heart Rate Measurement profile.  Data parsing is
@@ -229,34 +298,40 @@ public class BluetoothLeService extends Service {
                 Log.d(TAG, "RGB led format UINT8.");
             }
 
-
-
-            final int soundRecognized = characteristic.getIntValue(format, 3);
-            Log.i("myTag", String.format("State of Sound Recognition: %d" ,soundRecognized));
-            intent.putExtra(EXTRA_DATA, String.valueOf(soundRecognized));
-
-
-            /**
-             *
-             */
-
-            Log.i("myTag","정보 들어왔나요?");
-
-
-
+            final int getValue = characteristic.getIntValue(format, 0);
+            Log.i("myTag_", String.format("value : %d" ,getValue));
+            intent.putExtra(EXTRA_DATA, String.valueOf(getValue));
 
         } else {
             // For all other profiles, writes the data formatted in HEX.
-            final byte[] data = characteristic.getValue();
-            if (data != null && data.length > 0) {
-                final StringBuilder stringBuilder = new StringBuilder(data.length);
-                for(byte byteChar : data)
-                    stringBuilder.append(String.format("%02X ", byteChar));
-                intent.putExtra(EXTRA_DATA, new String(data) + "\n" + stringBuilder.toString());
+
+            Log.i("myTag_", "else");
+
+            int flag = characteristic.getProperties();
+            int format = -1;
+            if ((flag & 0x01) != 0) {
+                format = BluetoothGattCharacteristic.FORMAT_UINT16;
+            } else {
+                format = BluetoothGattCharacteristic.FORMAT_UINT8;
             }
+            final int getValue = characteristic.getIntValue(format, 0);
+            Log.i("myTag_", String.format("value : %d" ,getValue));
+            intent.putExtra(EXTRA_DATA, String.valueOf(getValue));
+
+//            final byte[] data = characteristic.getValue();
+//            if (data != null && data.length > 0) {
+//                final StringBuilder stringBuilder = new StringBuilder(data.length);
+//                for(byte byteChar : data)
+//                    stringBuilder.append(String.format("%02X ", byteChar));
+//                intent.putExtra(EXTRA_DATA, new String(data) + "\n" + stringBuilder.toString());
+//            }
         }
+
         sendBroadcast(intent);
     }
+
+
+
 
     public class LocalBinder extends Binder {
         public BluetoothLeService getService() {
@@ -390,6 +465,9 @@ public class BluetoothLeService extends Service {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
+
+        Log.i("myTag_","---------read");
+
         mBluetoothGatt.readCharacteristic(characteristic);
 
 
@@ -432,28 +510,34 @@ public class BluetoothLeService extends Service {
         return mBluetoothGatt.getServices();
     }
 
+    /**
+     * 디바이스 Notification Center에 나타난다.
+     * @param title
+     * @param message
+     */
+    private void sendNotification(String title, String message) {
+        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 /* Request code */, intent,
+                PendingIntent.FLAG_ONE_SHOT);
 
-    public void GATTConnect(BluetoothGattCharacteristic characteristic){
-//        BluetoothGattCharacteristic characteristic = mGattCharacteristics.get(0).get(0);
+        long[] vibratorPattern = {100, 100, 300};
 
-        final int charaProp = characteristic.getProperties();
+        Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this)
+                .setSmallIcon(R.drawable.logo)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setAutoCancel(true)
+                .setSound(defaultSoundUri)
+                .setVibrate(vibratorPattern)
+                .setContentIntent(pendingIntent);
 
-        if ((charaProp | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
-            // If there is an active notification on a characteristic, clear
-            // it first so it doesn't update the data field on the user interface.
-            Log.i("myTag", "---- GATT 1----");
-            if (mNotifyCharacteristic != null) {
-                ApplicationController.getInstance().mBluetoothLeService.setCharacteristicNotification(mNotifyCharacteristic, false);
-                mNotifyCharacteristic = null;
-            }
-            ApplicationController.getInstance().mBluetoothLeService.readCharacteristic(characteristic);
-        }
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
-        if ((charaProp | BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
-            Log.i("myTag", "---- GATT 2----");
-            mNotifyCharacteristic = characteristic;
-            ApplicationController.getInstance().mBluetoothLeService.setCharacteristicNotification(characteristic, true);
-        }
+        notificationManager.notify(0 /* ID of notification */, notificationBuilder.build());
     }
+
 
 }

@@ -42,7 +42,7 @@
             android:id="@+id/profile_image"
             android:layout_width="160dp"
             android:layout_height="160dp"
-            android:src="@drawable/ic_owner"/>
+            android:src="@drawable/owner"/>
 
     </LinearLayout>
 

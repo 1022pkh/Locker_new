@@ -1,16 +1,23 @@
 package com.capstone.locker.register;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.capstone.locker.Buletooth.presenter.BluetoothLeService;
 import com.capstone.locker.Buletooth.view.DeviceSearchActivity;
 import com.capstone.locker.R;
 import com.capstone.locker.application.ApplicationController;
@@ -42,6 +49,60 @@ public class RegisterActivity extends AppCompatActivity {
     private static final int REQUEST_CONNECT_DEVICE = 1;
     private static final int REQUEST_ENABLE_BT = 2;
 
+
+
+    private BluetoothLeService mBluetoothLeService;
+
+
+    public final ServiceConnection mServiceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder service) {
+            mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
+            if (!mBluetoothLeService.initialize()) {
+//                Log.e(TAG, "Unable to initialize Bluetooth");
+//                finish();
+            }
+            // Automatically connects to the device upon successful start-up initialization.
+//            mBluetoothLeService.connect(mDeviceAddress);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            mBluetoothLeService = null;
+            Log.i("myTag","application onServiceDisconnected");
+        }
+    };
+
+    private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final String action = intent.getAction();
+            if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
+                Log.i("myTag","BroadcastReceiver 연결성공");
+                invalidateOptionsMenu();
+
+            } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
+                Log.i("myTag","BroadcastReceiver 연결 해제");
+                invalidateOptionsMenu();
+
+
+                // 연결 실패시 연결로 이어지도록 조건 변경
+                Log.i("myTag","현재 블루투스 연결 상태 : false");
+                checkConnectBLE = false;
+                connectBLE.setText("");
+
+                ApplicationController.editor.putBoolean("Connect_check", false);
+                ApplicationController.editor.commit();
+
+            } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
+                Log.i("myTag", "BroadcastReceiver GATT 서비스 발견");
+
+            }
+
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -51,20 +112,63 @@ public class RegisterActivity extends AppCompatActivity {
 
         checkBlueTooth();
 
-//        if(ApplicationController.getInstance().mDeviceAddress == null)
-//            ApplicationController.getInstance().mDeviceAddress = "";
+
+        /**
+         * BLE 서비스를 등록
+         */
+        Intent gattServiceIntent = new Intent(getApplicationContext(), BluetoothLeService.class);
+        bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+        registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
+
+
 
         if(ApplicationController.connectInfo.getBoolean("Connect_check", false)){
-            Log.i("myTag","true");
+            Log.i("myTag","현재 블루투스 연결 상태 : true");
             checkConnectBLE = true;
             Log.i("myTag",ApplicationController.getInstance().mDeviceAddress);
             connectBLE.setText(ApplicationController.getInstance().mDeviceAddress);
-
 
             registerBLECheck();
 
         }
 
+    }
+
+
+    private static IntentFilter makeGattUpdateIntentFilter() {
+        final IntentFilter intentFilter = new IntentFilter();
+
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTING);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED_CAROUSEL);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED_OTA);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECT_OTA);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED_OTA);
+        intentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICE_DISCOVERY_UNSUCCESSFUL);
+        intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
+        intentFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CHARACTERISTIC_ERROR);
+        intentFilter.addAction(BluetoothLeService.ACTION_WRITE_SUCCESS);
+        intentFilter.addAction(BluetoothLeService.ACTION_WRITE_FAILED);
+        intentFilter.addAction(BluetoothLeService.ACTION_PAIR_REQUEST);
+        intentFilter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+        intentFilter.addAction(BluetoothDevice.EXTRA_BOND_STATE);
+        intentFilter.addAction(BluetoothLeService.ACTION_WRITE_COMPLETED);
+        return intentFilter;
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        try{
+            unbindService(mServiceConnection);
+            unregisterReceiver(mGattUpdateReceiver);
+        }catch(IllegalArgumentException e){
+
+        }
     }
 
     public void registerBLECheck(){

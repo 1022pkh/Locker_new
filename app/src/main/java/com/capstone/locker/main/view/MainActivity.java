@@ -95,14 +95,14 @@ public class MainActivity extends AppCompatActivity implements MainView{
 
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder service) {
-            mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
-            if (!mBluetoothLeService.initialize()) {
-//                Log.e(TAG, "Unable to initialize Bluetooth");
-//                finish();
-            }
+//            mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
+//            if (!mBluetoothLeService.initialize()) {
+////                Log.e(TAG, "Unable to initialize Bluetooth");
+////                finish();
+//            }
             // Automatically connects to the device upon successful start-up initialization.
-            if(ApplicationController.getInstance().mDeviceAddress.length()>0)
-                mBluetoothLeService.connect(ApplicationController.getInstance().mDeviceAddress);
+//            if(ApplicationController.getInstance().mDeviceAddress.length()>0)
+//                mBluetoothLeService.connect(ApplicationController.getInstance().mDeviceAddress);
         }
 
         @Override
@@ -458,6 +458,9 @@ public class MainActivity extends AppCompatActivity implements MainView{
 
 
                 connectListView = (SwipeMenuListView)findViewById(R.id.connectListview);
+                connectListView.setVerticalScrollBarEnabled(false);
+                connectListView.setOverScrollMode(View.OVER_SCROLL_NEVER); // 효과 없음
+
 
                 // 들어갈 자료를 ListView에 지정
                 connectCustomAdapter = new CustomAdapter(connectItemDatas, getApplicationContext());
@@ -511,7 +514,7 @@ public class MainActivity extends AppCompatActivity implements MainView{
                         // set item width
                         deleteItem.setWidth(dp2px(70));
 
-                        deleteItem.setIcon(R.drawable.ic_delete);
+                        deleteItem.setIcon(R.drawable.bluetooth);
                         // add to menu
                         menu.addMenuItem(deleteItem);
                     }
@@ -536,6 +539,7 @@ public class MainActivity extends AppCompatActivity implements MainView{
                     @Override
                     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                         Intent intent = new Intent(getApplicationContext(), OrderActivity.class);
+                        intent.putExtra("id",String.valueOf(connectItemDatas.get(position).id));
                         startActivity(intent);
                     }
                 });
@@ -582,7 +586,7 @@ public class MainActivity extends AppCompatActivity implements MainView{
                                             // 확인 버튼 클릭시 설정
                                             public void onClick(DialogInterface dialog, int whichButton){
 
-                                                mBluetoothLeService.disconnect();
+                                                ApplicationController.getInstance().unBindBLEService();
 
                                                 ApplicationController.getInstance().mDeviceName = "";
                                                 ApplicationController.getInstance().mDeviceAddress = "";

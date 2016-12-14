@@ -71,7 +71,7 @@ public class DbOpenHelper {
         values.put("quest_pwd",itemData.guestPwd);
         values.put("icon",itemData.icon);
         values.put("created",itemData.created);
-        values.put("pushcheck",itemData.created);
+        values.put("pushcheck",itemData.pushcheck);
 
         mDB.insert("moduleinfo",null,values);
 
